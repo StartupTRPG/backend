@@ -11,19 +11,24 @@ class Settings(BaseSettings):
     MONGODB_URL: str
     MONGODB_DB_NAME: str
     
-    # Google OAuth2 설정
-    GOOGLE_CLIENT_ID: Optional[str] = None
-    GOOGLE_CLIENT_SECRET: Optional[str] = None
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
-    
-    # JWT 설정
-    JWT_SECRET_KEY: str = "your-secret-key-change-this-in-production"
+    # JWT 설정 (Unity 클라이언트용)
+    JWT_SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7일 (Unity 게임용)
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30일
     
-    # CORS 설정
+    # Unity 클라이언트 설정
+    UNITY_CLIENT_ID: str = "unity_client"
+    UNITY_CLIENT_SECRET: str = "unity_secret_key"
+    
+    # CORS 설정 (Unity WebGL용)
     FRONTEND_URL: str = "http://localhost:3000"
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://localhost:8080",  # Unity WebGL
+        "http://127.0.0.1:8080"   # Unity WebGL
+    ]
     
     # 로깅 설정
     LOG_LEVEL: str = "INFO"

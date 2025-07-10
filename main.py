@@ -7,6 +7,9 @@ import logging
 
 from src.core.mongodb import connect_to_mongo, close_mongo_connection, ping_database, get_collection
 from src.core.config import settings
+from src.core.jwt_utils import jwt_manager
+
+from src.modules.auth.router import router as auth_router
 
 # 로깅 설정
 logging.basicConfig(
@@ -49,6 +52,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 라우터 등록
+app.include_router(auth_router)
 
 @app.get("/")
 async def root():
