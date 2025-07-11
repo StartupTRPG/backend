@@ -1,6 +1,7 @@
-import bcrypt
+import hashlib
+import secrets
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 from bson import ObjectId
 from src.core.mongodb import get_collection
 from src.core.jwt_utils import jwt_manager
@@ -16,15 +17,30 @@ class UserService:
             self.collection = get_collection("users")
         return self.collection
     
-    def hash_password(self, password: str) -> str:
-        """비밀번호 해싱"""
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
+    def generate_salt(self) -> str:
+        """사용자별 고유 salt 생성"""
+        return secrets.token_hex(32)  # 64자리 hex 문자열
     
-    def verify_password(self, password: str, hashed_password: str) -> bool:
+    def hash_password_with_salt(self, password: str, salt: str) -> str:
+        """비밀번호와 salt를 사용한 해싱"""
+        # PBKDF2 사용 (더 안전한 단방향 해싱)
+        hashed = hashlib.pbkdf2_hmac(
+            'sha256',  # 해시 알고리즘
+            password.encode('utf-8'),  # 비밀번호
+            salt.encode('utf-8'),  # salt
+            100000  # 반복 횟수 (더 높을수록 안전)
+        )
+        return hashed.hex()
+    
+    def create_password_hash(self, password: str) -> Tuple[str, str]:
+        """비밀번호 해싱 (salt 생성 포함)"""
+        salt = self.generate_salt()
+        hashed_password = self.hash_password_with_salt(password, salt)
+        return hashed_password, salt
+    
+    def verify_password(self, password: str, hashed_password: str, salt: str) -> bool:
         """비밀번호 검증"""
-        return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
+        return self.hash_password_with_salt(password, salt) == hashed_password
     
     async def create_user(self, user_data: UserCreate) -> UserResponse:
         """사용자 생성"""
@@ -34,8 +50,8 @@ class UserService:
         if existing_user:
             raise ValueError("이미 존재하는 사용자명입니다.")
         
-        # 비밀번호 해싱
-        hashed_password = self.hash_password(user_data.password)
+        # 비밀번호 해싱 (salt 포함)
+        hashed_password, salt = self.create_password_hash(user_data.password)
         
         # 사용자 문서 생성
         user_doc = {
@@ -43,6 +59,7 @@ class UserService:
             "email": user_data.email,
             "nickname": user_data.nickname or user_data.username,
             "password": hashed_password,
+            "salt": salt,  # salt를 DB에 저장
             "created_at": datetime.utcnow(),
             "last_login": None
         }
@@ -50,6 +67,7 @@ class UserService:
         result = await collection.insert_one(user_doc)
         user_doc["id"] = str(result.inserted_id)  # _id를 id로 변경
         del user_doc["password"]  # 비밀번호 제거
+        del user_doc["salt"]  # salt 제거
         
         return UserResponse(**user_doc)
     
@@ -60,7 +78,12 @@ class UserService:
         if not user_doc:
             return None
         
-        if not self.verify_password(login_data.password, user_doc["password"]):
+        # salt가 없는 사용자는 인증 실패 (새로운 방식만 지원)
+        if "salt" not in user_doc:
+            return None
+        
+        # PBKDF2 + salt 방식으로 비밀번호 검증
+        if not self.verify_password(login_data.password, user_doc["password"], user_doc["salt"]):
             return None
         
         # 마지막 로그인 시간 업데이트
@@ -70,7 +93,10 @@ class UserService:
         )
         
         user_doc["id"] = str(user_doc["_id"])  # _id를 id로 변경
-        del user_doc["password"]  # 비밀번호 제거
+        if "password" in user_doc:
+            del user_doc["password"]  # 비밀번호 제거
+        if "salt" in user_doc:
+            del user_doc["salt"]  # salt 제거
         return UserResponse(**user_doc)
     
     async def get_user_by_id(self, user_id: str) -> Optional[UserResponse]:
@@ -83,6 +109,8 @@ class UserService:
         user_doc["id"] = str(user_doc["_id"])  # _id를 id로 변경
         if "password" in user_doc:
             del user_doc["password"]  # 비밀번호 제거
+        if "salt" in user_doc:
+            del user_doc["salt"]  # salt 제거
         return UserResponse(**user_doc)
     
     def create_tokens(self, user: UserResponse) -> TokenResponse:

@@ -33,15 +33,18 @@ class JWTManager:
             return payload
         except jwt.ExpiredSignatureError:
             return None
-        except jwt.JWTError:
+        except jwt.DecodeError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
             return None
     
     def create_token_pair(self, user_id: str, username: str) -> Dict[str, str]:
         """액세스 토큰과 리프레시 토큰 쌍 생성"""
         user_data = {
             "user_id": user_id,
-            "username": username,
-            "client_id": settings.UNITY_CLIENT_ID
+            "username": username
         }
         
         access_token = self.create_access_token(user_data)

@@ -11,23 +11,27 @@ class Settings(BaseSettings):
     MONGODB_URL: str
     MONGODB_DB_NAME: str
     
-    # JWT 설정 (Unity 클라이언트용)
+    # JWT 설정 (웹 클라이언트용)
     JWT_SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7일 (Unity 게임용)
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30일
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1일 (웹용)
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7일
     
-    # Unity 클라이언트 설정
-    UNITY_CLIENT_ID: str = "unity_client"
-    UNITY_CLIENT_SECRET: str = "unity_secret_key"
+    # 웹 클라이언트 설정
+    WEB_CLIENT_ID: str = "web_client"
+    WEB_CLIENT_SECRET: str = "web_secret_key"
     
-    # CORS 설정 (Unity WebGL용)
+    # CORS 설정 (웹 클라이언트용)
     FRONTEND_URL: str = "http://localhost:3000"
     ALLOWED_ORIGINS: list[str] = [
-        "http://localhost:3000", 
+        "http://localhost:3000",  # React 기본 포트
         "http://127.0.0.1:3000",
-        "http://localhost:8080",  # Unity WebGL
-        "http://127.0.0.1:8080"   # Unity WebGL
+        "http://localhost:5173",  # Vite 개발 서버
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",  # 기타 웹 개발 서버
+        "http://127.0.0.1:8080",
+        "http://localhost:4200",  # Angular 기본 포트
+        "http://127.0.0.1:4200"
     ]
     
     # 로깅 설정
