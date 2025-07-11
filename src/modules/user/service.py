@@ -5,7 +5,8 @@ from typing import Optional, Tuple
 from bson import ObjectId
 from src.core.mongodb import get_collection
 from src.core.jwt_utils import jwt_manager
-from .dto import UserCreateRequest, UserLoginRequest, UserResponse, TokenResponse
+from .dto import UserCreateRequest, UserLoginRequest, UserResponse
+from src.modules.auth.dto import TokenResponse
 
 class UserService:
     def __init__(self):
@@ -115,6 +116,7 @@ class UserService:
     
     def create_tokens(self, user: UserResponse) -> TokenResponse:
         """토큰 쌍 생성"""
+        from src.core.jwt_utils import jwt_manager
         token_pair = jwt_manager.create_token_pair(user.id, user.username)
         return TokenResponse(**token_pair.model_dump(), user=user)
     

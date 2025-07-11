@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 from src.core.socket.interfaces import AuthMessage, SocketEventType
-from src.core.jwt_utils import jwt_manager
 from src.modules.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -15,6 +14,7 @@ class AuthSocketService:
         """연결 처리"""
         try:
             # JWT 토큰 검증
+            from src.core.jwt_utils import jwt_manager
             token = data.get('token')
             if not token:
                 logger.warning(f"Connection rejected for {sid}: No token provided")

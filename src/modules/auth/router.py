@@ -2,7 +2,8 @@ import logging
 from fastapi import APIRouter, HTTPException, Depends, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.modules.user.service import user_service
-from src.modules.user.dto import UserCreateRequest, UserLoginRequest, TokenResponse, RefreshTokenRequest
+from src.modules.user.dto import UserCreateRequest, UserLoginRequest
+from src.modules.auth.dto import TokenResponse, RefreshTokenRequest
 from src.modules.profile.service import user_profile_service
 from src.modules.profile.models import UserProfileCreate
 from src.core.jwt_utils import jwt_manager
