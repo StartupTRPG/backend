@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.modules.user.service import user_service
 from src.modules.user.models import UserCreate, UserLogin, TokenResponse, RefreshTokenRequest
+from src.modules.user.profile_service import user_profile_service
+from src.modules.user.profile_models import UserProfileCreate
 from src.core.jwt_utils import jwt_manager
 
 router = APIRouter(prefix="/auth", tags=["인증"])
@@ -12,6 +14,19 @@ async def register(user_data: UserCreate, response: Response):
     """사용자 회원가입"""
     try:
         user = await user_service.create_user(user_data)
+        
+        # 기본 프로필 자동 생성
+        try:
+            default_profile = UserProfileCreate(
+                display_name=user.username,
+                bio=f"안녕하세요! {user.username}입니다.",
+                user_level=1
+            )
+            await user_profile_service.create_profile(user, default_profile)
+        except Exception as e:
+            # 프로필 생성 실패는 로그만 남기고 회원가입은 계속 진행
+            print(f"프로필 생성 실패: {e}")
+        
         tokens = user_service.create_tokens(user)
         
         # 웹 클라이언트용 쿠키 설정
@@ -129,3 +144,35 @@ async def logout(response: Response):
         return {"message": "로그아웃이 완료되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail="로그아웃 중 오류가 발생했습니다.")
+
+@router.delete("/account")
+async def delete_account(
+    response: Response,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """계정 삭제 (프로필도 함께 삭제)"""
+    try:
+        # 현재 사용자 확인
+        payload = jwt_manager.verify_token(credentials.credentials)
+        if not payload:
+            raise HTTPException(status_code=401, detail="유효하지 않은 액세스 토큰입니다.")
+        
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=401, detail="잘못된 토큰 타입입니다.")
+        
+        user_id = payload["user_id"]
+        
+        # 계정 삭제 (프로필도 함께 삭제됨)
+        success = await user_service.delete_user(user_id)
+        if not success:
+            raise HTTPException(status_code=400, detail="계정 삭제에 실패했습니다.")
+        
+        # 쿠키 삭제
+        response.delete_cookie(key="access_token")
+        response.delete_cookie(key="refresh_token")
+        
+        return {"message": "계정이 성공적으로 삭제되었습니다."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="계정 삭제 중 오류가 발생했습니다.")

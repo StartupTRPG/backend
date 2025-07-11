@@ -117,6 +117,30 @@ class UserService:
         """토큰 쌍 생성"""
         token_data = jwt_manager.create_token_pair(user.id, user.username)
         return TokenResponse(**token_data, user=user)
+    
+    async def delete_user(self, user_id: str) -> bool:
+        """사용자 계정 삭제 (프로필도 함께 삭제)"""
+        collection = self._get_collection()
+        
+        try:
+            # 사용자 삭제
+            result = await collection.delete_one({"_id": ObjectId(user_id)})
+            
+            if result.deleted_count > 0:
+                # 프로필도 함께 삭제
+                try:
+                    from .profile_service import user_profile_service
+                    await user_profile_service.delete_profile(user_id)
+                except Exception as e:
+                    # 프로필 삭제 실패는 로그만 남김
+                    print(f"프로필 삭제 실패: {e}")
+                
+                return True
+            
+            return False
+            
+        except Exception:
+            return False
 
 # 전역 서비스 인스턴스
 user_service = UserService() 

@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 import jwt
+from fastapi import HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.core.config import settings
 
 class JWTManager:
@@ -58,4 +60,49 @@ class JWTManager:
         }
 
 # 전역 JWT 매니저 인스턴스
-jwt_manager = JWTManager() 
+jwt_manager = JWTManager()
+
+# HTTP Bearer 토큰 스키마
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """현재 사용자 정보 조회"""
+    from src.modules.user.service import user_service
+    
+    try:
+        # 토큰 검증
+        payload = jwt_manager.verify_token(credentials.credentials)
+        if not payload or payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="유효하지 않은 토큰입니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # 사용자 정보 조회
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="토큰에 사용자 정보가 없습니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        user = await user_service.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="사용자를 찾을 수 없습니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="토큰 검증 중 오류가 발생했습니다.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) 

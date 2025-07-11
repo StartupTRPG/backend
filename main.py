@@ -10,10 +10,15 @@ from src.core.config import settings
 from src.core.jwt_utils import jwt_manager
 
 from src.modules.auth.router import router as auth_router
+from src.modules.room.router import router as room_router
+from src.modules.user.profile_router import router as profile_router
+from src.modules.chat.router import router as chat_router
+from src.core.socket import create_socketio_app, get_socket_events_documentation
+from src.core.swagger import custom_openapi
 
 # 로깅 설정
 logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
+    level=getattr(logging, settings.LOG_LEVEL.upper()),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
@@ -41,7 +46,35 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
-    lifespan=lifespan
+    lifespan=lifespan,
+    description="""
+## 🎮 Madcamp Backend API
+
+이 API는 게임 로비 및 실시간 채팅 기능을 제공합니다.
+
+### 🔌 Socket.IO 연결
+- **URL**: `ws://localhost:8000/socket.io/`
+- **인증**: JWT 토큰 필요
+- **연결 예시**:
+```javascript
+const socket = io('ws://localhost:8000', {
+    auth: {
+        token: 'your-jwt-token'
+    }
+});
+```
+
+### 🔐 인증
+1. `/auth/login` 또는 `/auth/register`로 JWT 토큰 획득
+2. REST API: `Authorization: Bearer <token>` 헤더 사용
+3. Socket.IO: 연결 시 `auth.token`에 토큰 포함
+
+### 📊 주요 기능
+- **사용자 인증**: 회원가입, 로그인, 프로필 관리
+- **방 관리**: 방 생성, 입장, 나가기
+- **실시간 채팅**: 방별 채팅, 메시지 암호화
+- **Socket.IO 이벤트**: 실시간 통신
+    """
 )
 
 # CORS 설정
@@ -55,6 +88,9 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(auth_router)
+app.include_router(room_router)
+app.include_router(profile_router)
+app.include_router(chat_router)
 
 @app.get("/")
 async def root():
@@ -77,59 +113,20 @@ async def health_check():
         "database": "connected" if db_status else "disconnected"
     }
 
-@app.get("/test/mongodb")
-async def test_mongodb():
-    """MongoDB 연결 테스트 엔드포인트"""
-    try:
-        # 테스트 컬렉션 가져오기
-        test_collection = get_collection("test")
-        
-        # 테스트 문서 삽입
-        test_doc = {
-            "message": "MongoDB 연결 테스트",
-            "timestamp": datetime.now(),
-            "test_id": "test_001"
-        }
-        
-        result = await test_collection.insert_one(test_doc)
-        
-        # 삽입된 문서 조회
-        inserted_doc = await test_collection.find_one({"_id": result.inserted_id})
-        
-        # ObjectId를 문자열로 변환
-        inserted_doc["_id"] = str(inserted_doc["_id"])
-        inserted_doc["timestamp"] = inserted_doc["timestamp"].isoformat()
-        
-        return {
-            "status": "success",
-            "message": "MongoDB 연결 및 작업이 성공적으로 완료되었습니다.",
-            "inserted_document": inserted_doc
-        }
-        
-    except Exception as e:
-        logger.error(f"MongoDB 테스트 실패: {e}")
-        raise HTTPException(status_code=500, detail=f"MongoDB 테스트 실패: {str(e)}")
+@app.get("/socket-docs", tags=["Documentation"])
+async def get_socket_documentation():
+    """Socket.IO 이벤트 문서"""
+    return get_socket_events_documentation()
 
-@app.get("/test/mongodb/count")
-async def test_mongodb_count():
-    """MongoDB 컬렉션 문서 수 조회"""
-    try:
-        test_collection = get_collection("test")
-        count = await test_collection.count_documents({})
-        
-        return {
-            "status": "success",
-            "collection": "test",
-            "document_count": count
-        }
-        
-    except Exception as e:
-        logger.error(f"MongoDB 문서 수 조회 실패: {e}")
-        raise HTTPException(status_code=500, detail=f"MongoDB 문서 수 조회 실패: {str(e)}")
+# 커스텀 OpenAPI 스키마 적용
+app.openapi = lambda: custom_openapi(app)
+
+# Socket.IO 앱 생성
+socket_app = create_socketio_app(app)
 
 if __name__ == "__main__":
     uvicorn.run(
-        app,
+        socket_app,  # Socket.IO가 통합된 앱 사용
         host="0.0.0.0",
         port=8000,
         log_level=settings.LOG_LEVEL.lower()
