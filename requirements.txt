@@ -41,4 +41,11 @@ email-validator==2.2.0
 python-socketio==5.13.0
 
 # 암호화
-cryptography==41.0.8
+cryptography==45.0.5
+
+# 테스트용 라이브러리
+pytest==8.4.1
+pytest-asyncio==0.23.8
+requests==2.32.3
+aiohttp==3.9.5
+mongomock-motor==0.0.36

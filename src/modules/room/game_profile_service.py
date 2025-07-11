@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from bson import ObjectId
 from src.core.mongodb import get_collection
-from src.modules.user.models import UserResponse
+from src.modules.user.dto import UserResponse
 from .models import GameProfile, GameProfileCreate, LobbyProfileCreate
 
 class GameProfileService:

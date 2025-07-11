@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import List, Optional
+import logging
 from bson import ObjectId
 from src.core.mongodb import get_collection
-from .models import ChatMessage, ChatMessageResponse, MessageType, RoomChatHistory
+from .models import ChatMessage, ChatType
+from .dto import ChatMessageResponse, RoomChatHistoryResponse
 
+logger = logging.getLogger(__name__)
 
 class ChatService:
     def __init__(self):
@@ -22,10 +25,12 @@ class ChatService:
         username: str, 
         display_name: str, 
         content: str, 
-        message_type: MessageType = MessageType.TEXT
+        message_type: ChatType = ChatType.TEXT
     ) -> ChatMessageResponse:
         """채팅 메시지 저장"""
         try:
+            logger.info(f"Saving message in room {room_id} by user {username}")
+            
             message_data = {
                 "room_id": room_id,
                 "user_id": user_id,
@@ -41,6 +46,8 @@ class ChatService:
             # 저장된 메시지 조회
             saved_message = await self._get_collection().find_one({"_id": result.inserted_id})
             
+            logger.debug(f"Message saved successfully: {result.inserted_id}")
+            
             return ChatMessageResponse(
                 id=str(saved_message["_id"]),
                 room_id=saved_message["room_id"],
@@ -48,12 +55,12 @@ class ChatService:
                 username=saved_message["username"],
                 display_name=saved_message["display_name"],
                 message_type=saved_message["message_type"],
-                content=saved_message["content"],
+                message=saved_message["content"],
                 timestamp=saved_message["timestamp"]
             )
             
         except Exception as e:
-            print(f"메시지 저장 오류: {e}")
+            logger.error(f"Error saving message in room {room_id}: {str(e)}")
             raise
     
     async def get_room_messages(
@@ -61,9 +68,11 @@ class ChatService:
         room_id: str, 
         page: int = 1, 
         limit: int = 50
-    ) -> RoomChatHistory:
+    ) -> RoomChatHistoryResponse:
         """방의 채팅 메시지 조회 (페이지네이션)"""
         try:
+            logger.info(f"Fetching messages for room {room_id} (page: {page}, limit: {limit})")
+            
             skip = (page - 1) * limit
             
             # 메시지 조회 (최신순)
@@ -80,7 +89,7 @@ class ChatService:
                     username=doc["username"],
                     display_name=doc["display_name"],
                     message_type=doc["message_type"],
-                    content=doc["content"],
+                    message=doc["content"],
                     timestamp=doc["timestamp"]
                 ))
             
@@ -90,7 +99,9 @@ class ChatService:
             # 총 메시지 수 조회
             total_count = await self._get_collection().count_documents({"room_id": room_id})
             
-            return RoomChatHistory(
+            logger.debug(f"Found {len(messages)} messages for room {room_id} (total: {total_count})")
+            
+            return RoomChatHistoryResponse(
                 room_id=room_id,
                 messages=messages,
                 total_count=total_count,
@@ -99,27 +110,30 @@ class ChatService:
             )
             
         except Exception as e:
-            print(f"메시지 조회 오류: {e}")
+            logger.error(f"Error fetching messages for room {room_id}: {str(e)}")
             raise
     
     async def save_system_message(self, room_id: str, content: str) -> ChatMessageResponse:
         """시스템 메시지 저장"""
+        logger.info(f"Saving system message in room {room_id}: {content}")
         return await self.save_message(
             room_id=room_id,
             user_id="system",
             username="시스템",
             display_name="시스템",
             content=content,
-            message_type=MessageType.SYSTEM
+            message_type=ChatType.SYSTEM
         )
     
     async def delete_room_messages(self, room_id: str) -> int:
         """방의 모든 메시지 삭제"""
         try:
+            logger.warning(f"Deleting all messages for room {room_id}")
             result = await self._get_collection().delete_many({"room_id": room_id})
+            logger.info(f"Deleted {result.deleted_count} messages from room {room_id}")
             return result.deleted_count
         except Exception as e:
-            print(f"메시지 삭제 오류: {e}")
+            logger.error(f"Error deleting messages for room {room_id}: {str(e)}")
             raise
 
 

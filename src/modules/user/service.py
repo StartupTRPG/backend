@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from bson import ObjectId
 from src.core.mongodb import get_collection
 from src.core.jwt_utils import jwt_manager
-from .models import UserCreate, UserLogin, UserResponse, TokenResponse
+from .dto import UserCreateRequest, UserLoginRequest, UserResponse, TokenResponse
 
 class UserService:
     def __init__(self):
@@ -42,7 +42,7 @@ class UserService:
         """비밀번호 검증"""
         return self.hash_password_with_salt(password, salt) == hashed_password
     
-    async def create_user(self, user_data: UserCreate) -> UserResponse:
+    async def create_user(self, user_data: UserCreateRequest) -> UserResponse:
         """사용자 생성"""
         collection = self._get_collection()
         # 중복 사용자명 확인
@@ -71,7 +71,7 @@ class UserService:
         
         return UserResponse(**user_doc)
     
-    async def authenticate_user(self, login_data: UserLogin) -> Optional[UserResponse]:
+    async def authenticate_user(self, login_data: UserLoginRequest) -> Optional[UserResponse]:
         """사용자 인증"""
         collection = self._get_collection()
         user_doc = await collection.find_one({"username": login_data.username})
@@ -115,8 +115,8 @@ class UserService:
     
     def create_tokens(self, user: UserResponse) -> TokenResponse:
         """토큰 쌍 생성"""
-        token_data = jwt_manager.create_token_pair(user.id, user.username)
-        return TokenResponse(**token_data, user=user)
+        token_pair = jwt_manager.create_token_pair(user.id, user.username)
+        return TokenResponse(**token_pair.model_dump(), user=user)
     
     async def delete_user(self, user_id: str) -> bool:
         """사용자 계정 삭제 (프로필도 함께 삭제)"""

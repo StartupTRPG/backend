@@ -1,18 +1,16 @@
 # Socket.IO 관련 모듈
-from .server import create_socketio_app, sio
+from .server import sio, connected_users, room_users, create_socketio_app
 from .handler import SocketMessageHandler
-from .interfaces import SocketEventType, BaseSocketMessage, AuthMessage, RoomMessage, ChatMessage, SystemMessage
-from .documentation import get_socket_events_documentation
+from .interfaces import (
+    SocketEventType, BaseSocketMessage,
+    AuthMessage, RoomMessage, ChatMessage, SystemMessage
+)
+from .strategy import SocketMessageStrategy
+from .factory import SocketMessageStrategyFactory, get_strategy_factory
 
 __all__ = [
-    'create_socketio_app',
-    'sio',
+    'sio', 'connected_users', 'room_users', 'create_socketio_app',
     'SocketMessageHandler',
-    'SocketEventType',
-    'BaseSocketMessage',
-    'AuthMessage',
-    'RoomMessage',
-    'ChatMessage',
-    'SystemMessage',
-    'get_socket_events_documentation'
+    'SocketEventType', 'BaseSocketMessage', 'AuthMessage', 'RoomMessage', 'ChatMessage', 'SystemMessage',
+    'SocketMessageStrategy', 'SocketMessageStrategyFactory', 'get_strategy_factory'
 ] 

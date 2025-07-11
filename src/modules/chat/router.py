@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List
 from src.core.jwt_utils import get_current_user
-from src.modules.user.models import UserResponse
+from src.modules.user.dto import UserResponse
 from .service import chat_service
-from .models import RoomChatHistory
+from .dto import RoomChatHistoryResponse
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
-@router.get("/room/{room_id}/history", response_model=RoomChatHistory)
+@router.get("/room/{room_id}/history", response_model=RoomChatHistoryResponse)
 async def get_room_chat_history(
     room_id: str,
     page: int = Query(1, ge=1, description="페이지 번호"),

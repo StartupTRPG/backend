@@ -1,14 +1,14 @@
 import hashlib
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from bson import ObjectId
 from src.core.mongodb import get_collection
-from src.modules.user.models import UserResponse
-from .models import (
-    RoomCreate, RoomUpdate, RoomResponse, RoomListResponse, 
-    RoomPlayer, RoomStatus, RoomVisibility, PlayerRole
-)
+from src.modules.user.dto import UserResponse
+from .dto import RoomCreateRequest, RoomUpdateRequest, RoomResponse, RoomListResponse
+from .models import RoomPlayer, RoomStatus, RoomVisibility, PlayerRole
 
+logger = logging.getLogger(__name__)
 
 class RoomService:
     def __init__(self):
@@ -53,6 +53,7 @@ class RoomService:
         player_collection = self._get_player_collection()
         
         try:
+            logger.debug(f"Fetching players for room: {room_id}")
             players_cursor = player_collection.find({"room_id": room_id})
             players_docs = await players_cursor.to_list(length=None)
             
@@ -66,46 +67,57 @@ class RoomService:
                 for player in players_docs
             ]
             
+            logger.debug(f"Found {len(players)} players in room {room_id}")
             return players
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error fetching players for room {room_id}: {str(e)}")
             return []
     
-    async def create_room(self, room_data: RoomCreate, host_user: UserResponse) -> RoomResponse:
+    async def create_room(self, room_data: RoomCreateRequest, host_user: UserResponse) -> RoomResponse:
         """방 생성"""
         collection = self._get_collection()
         player_collection = self._get_player_collection()
         
-        # 방 문서 생성
-        room_doc = {
-            "title": room_data.title,
-            "description": room_data.description,
-            "host_id": host_user.id,
-            "host_username": host_user.username,
-            "max_players": min(room_data.max_players, 6),  # 최대 6명 제한
-            "current_players": 1,  # 호스트 포함
-            "status": RoomStatus.WAITING,
-            "visibility": room_data.visibility,
-            "password": self._hash_password(room_data.password) if room_data.password else None,
-            "game_settings": room_data.game_settings,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        
-        result = await collection.insert_one(room_doc)
-        room_id = str(result.inserted_id)
-        
-        # 호스트를 플레이어로 추가
-        host_player = {
-            "room_id": room_id,
-            "user_id": host_user.id,
-            "username": host_user.username,
-            "role": PlayerRole.HOST,
-            "joined_at": datetime.utcnow()
-        }
-        
-        await player_collection.insert_one(host_player)
-        
-        return await self.get_room(room_id)
+        try:
+            logger.info(f"Creating room '{room_data.title}' by user {host_user.username}")
+            
+            # 방 문서 생성
+            room_doc = {
+                "title": room_data.title,
+                "description": room_data.description,
+                "host_id": host_user.id,
+                "host_username": host_user.username,
+                "max_players": min(room_data.max_players, 6),  # 최대 6명 제한
+                "current_players": 1,  # 호스트 포함
+                "status": RoomStatus.WAITING,
+                "visibility": room_data.visibility,
+                "password": self._hash_password(room_data.password) if room_data.password else None,
+                "game_settings": room_data.game_settings,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            result = await collection.insert_one(room_doc)
+            room_id = str(result.inserted_id)
+            
+            # 호스트를 플레이어로 추가
+            host_player = {
+                "room_id": room_id,
+                "user_id": host_user.id,
+                "username": host_user.username,
+                "role": PlayerRole.HOST,
+                "joined_at": datetime.utcnow()
+            }
+            
+            await player_collection.insert_one(host_player)
+            
+            logger.info(f"Room created successfully: {room_data.title} (ID: {room_id})")
+            
+            return await self.get_room(room_id)
+            
+        except Exception as e:
+            logger.error(f"Error creating room '{room_data.title}': {str(e)}")
+            raise
     
     async def get_room(self, room_id: str) -> Optional[RoomResponse]:
         """방 정보 조회"""
@@ -299,7 +311,7 @@ class RoomService:
         except Exception:
             return False
     
-    async def update_room(self, room_id: str, room_data: RoomUpdate, user_id: str) -> Optional[RoomResponse]:
+    async def update_room(self, room_id: str, room_data: RoomUpdateRequest, user_id: str) -> Optional[RoomResponse]:
         """방 설정 변경 (호스트만)"""
         collection = self._get_collection()
         player_collection = self._get_player_collection()

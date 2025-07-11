@@ -4,6 +4,10 @@ import jwt
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.core.config import settings
+from src.modules.user.dto import TokenPair, TokenResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 class JWTManager:
     def __init__(self):
@@ -33,16 +37,11 @@ class JWTManager:
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             return payload
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.DecodeError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
         except Exception:
+            logger.error(f"토큰 검증 중 오류가 발생했습니다: {e}")
             return None
     
-    def create_token_pair(self, user_id: str, username: str) -> Dict[str, str]:
+    def create_token_pair(self, user_id: str, username: str) -> TokenPair:
         """액세스 토큰과 리프레시 토큰 쌍 생성"""
         user_data = {
             "user_id": user_id,
@@ -52,12 +51,12 @@ class JWTManager:
         access_token = self.create_access_token(user_data)
         refresh_token = self.create_refresh_token(user_data)
         
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "expires_in": self.access_token_expire_minutes * 60  # 초 단위
-        }
+        return TokenPair(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=self.access_token_expire_minutes * 60
+        )
 
 # 전역 JWT 매니저 인스턴스
 jwt_manager = JWTManager()

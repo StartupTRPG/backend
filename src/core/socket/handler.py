@@ -1,58 +1,40 @@
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional
 import logging
-from .interfaces import (
-    SocketEventType, BaseSocketMessage,
-    AuthMessage, RoomMessage, ChatMessage, SystemMessage
-)
+from .interfaces import BaseSocketMessage, SocketEventType
+from .factory import get_strategy_factory
 
 logger = logging.getLogger(__name__)
 
 class SocketMessageHandler:
-    """통합 Socket 메시지 핸들러 - 공통 처리 및 라우팅"""
+    """소켓 메시지 핸들러 - 전략 패턴과 팩토리 패턴 적용"""
     
     def __init__(self, sio):
         self.sio = sio
-        self.handlers: Dict[SocketEventType, Callable] = {}
-        self._register_handlers()
-    
-    def _register_handlers(self):
-        """핸들러 등록"""
-        self.handlers = {
-            SocketEventType.CONNECT: self._handle_connect,
-            SocketEventType.DISCONNECT: self._handle_disconnect,
-            SocketEventType.JOIN_ROOM: self._handle_join_room,
-            SocketEventType.LEAVE_ROOM: self._handle_leave_room,
-            SocketEventType.GET_ROOM_USERS: self._handle_get_room_users,
-            SocketEventType.SEND_MESSAGE: self._handle_send_message,
-            SocketEventType.GET_CHAT_HISTORY: self._handle_get_chat_history,
-        }
+        self.strategy_factory = get_strategy_factory()
+        logger.info(f"Socket message handler initialized with {len(self.strategy_factory.get_supported_event_types())} strategies")
     
     async def handle_message(self, event_type: SocketEventType, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        """메시지 처리 - 공통 처리 및 라우팅"""
+        """메시지 처리 - 전략 패턴 적용"""
         try:
-            handler = self.handlers.get(event_type)
-            if not handler:
-                logger.error(f"Unknown event type: {event_type}")
-                await self._send_error(sid, f"알 수 없는 이벤트 타입: {event_type}")
+            # 팩토리에서 적절한 전략 가져오기
+            strategy = self.strategy_factory.get_strategy(event_type)
+            if not strategy:
+                logger.error(f"No strategy found for event type: {event_type}")
+                await self._send_error(sid, f"지원하지 않는 이벤트 타입입니다: {event_type}")
                 return None
             
-            return await handler(sid, data)
+            # 전략을 통한 메시지 처리 (세션 검증은 전략 내부에서 처리)
+            logger.debug(f"Processing {event_type} with strategy: {strategy.__class__.__name__}")
+            result = await strategy.handle(self.sio, sid, data)
+            
+            if result:
+                logger.info(f"Successfully processed {event_type} for sid: {sid}")
+            
+            return result
             
         except Exception as e:
             logger.error(f"Message handling error for {event_type}: {str(e)}")
             await self._send_error(sid, "메시지 처리 중 오류가 발생했습니다.")
-            return None
-    
-    async def _validate_session(self, sid: str) -> Optional[Dict[str, Any]]:
-        """세션 검증"""
-        try:
-            session = await self.sio.get_session(sid)
-            if not session:
-                await self._send_error(sid, "세션을 찾을 수 없습니다.")
-                return None
-            return session
-        except Exception:
-            await self._send_error(sid, "세션 검증 중 오류가 발생했습니다.")
             return None
     
     async def _send_error(self, sid: str, message: str):
@@ -63,60 +45,15 @@ class SocketMessageHandler:
         """성공 메시지 전송"""
         await self.sio.emit('success', data, room=sid)
     
-    # 인증 관련 핸들러 - 각 모듈 서비스로 위임
-    async def _handle_connect(self, sid: str, data: Dict[str, Any]) -> Optional[AuthMessage]:
-        """연결 처리 - 인증 모듈로 위임"""
-        from src.modules.auth.socket_service import AuthSocketService
-        return await AuthSocketService.handle_connect(self.sio, sid, data)
+    def get_supported_event_types(self) -> list[SocketEventType]:
+        """지원하는 이벤트 타입 목록 반환"""
+        return self.strategy_factory.get_supported_event_types()
     
-    async def _handle_disconnect(self, sid: str, data: Dict[str, Any]) -> Optional[AuthMessage]:
-        """연결 해제 처리 - 인증 모듈로 위임"""
-        from src.modules.auth.socket_service import AuthSocketService
-        return await AuthSocketService.handle_disconnect(self.sio, sid, data)
+    def register_custom_strategy(self, event_type: SocketEventType, strategy):
+        """사용자 정의 전략 등록"""
+        self.strategy_factory.register_strategy(event_type, strategy)
+        logger.info(f"Registered custom strategy for {event_type}")
     
-    # 방 관련 핸들러 - 각 모듈 서비스로 위임
-    async def _handle_join_room(self, sid: str, data: Dict[str, Any]) -> Optional[RoomMessage]:
-        """방 입장 처리 - 방 모듈로 위임"""
-        session = await self._validate_session(sid)
-        if not session:
-            return None
-        
-        from src.modules.room.socket_service import RoomSocketService
-        return await RoomSocketService.handle_join_room(self.sio, sid, session, data)
-    
-    async def _handle_leave_room(self, sid: str, data: Dict[str, Any]) -> Optional[RoomMessage]:
-        """방 나가기 처리 - 방 모듈로 위임"""
-        session = await self._validate_session(sid)
-        if not session:
-            return None
-        
-        from src.modules.room.socket_service import RoomSocketService
-        return await RoomSocketService.handle_leave_room(self.sio, sid, session, data)
-    
-    async def _handle_get_room_users(self, sid: str, data: Dict[str, Any]) -> Optional[RoomMessage]:
-        """방 사용자 목록 조회 - 방 모듈로 위임"""
-        session = await self._validate_session(sid)
-        if not session:
-            return None
-        
-        from src.modules.room.socket_service import RoomSocketService
-        return await RoomSocketService.handle_get_room_users(self.sio, sid, session, data)
-    
-    # 채팅 관련 핸들러 - 각 모듈 서비스로 위임
-    async def _handle_send_message(self, sid: str, data: Dict[str, Any]) -> Optional[ChatMessage]:
-        """메시지 전송 처리 - 채팅 모듈로 위임"""
-        session = await self._validate_session(sid)
-        if not session:
-            return None
-        
-        from src.modules.chat.socket_service import ChatSocketService
-        return await ChatSocketService.handle_send_message(self.sio, sid, session, data)
-    
-    async def _handle_get_chat_history(self, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        """채팅 기록 조회 처리 - 채팅 모듈로 위임"""
-        session = await self._validate_session(sid)
-        if not session:
-            return None
-        
-        from src.modules.chat.socket_service import ChatSocketService
-        return await ChatSocketService.handle_get_chat_history(self.sio, sid, session, data) 
+    def has_strategy(self, event_type: SocketEventType) -> bool:
+        """특정 이벤트 타입에 대한 전략 존재 여부 확인"""
+        return self.strategy_factory.has_strategy(event_type) 

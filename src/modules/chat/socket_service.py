@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from src.core.socket.interfaces import ChatMessage, BaseSocketMessage, SocketEventType
 from src.core.encryption import encryption_service
 from src.modules.chat.service import chat_service
-from src.modules.chat.models import MessageType
+from src.modules.chat.models import ChatType
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class ChatSocketService:
                 username=session['username'],
                 display_name=session.get('display_name', session['username']),
                 content=encrypted_message,
-                message_type=MessageType.TEXT
+                message_type=ChatType.TEXT
             )
             
             # 실시간 전송용 메시지 (복호화된 상태로)
@@ -94,7 +94,7 @@ class ChatSocketService:
             for msg in chat_history.messages:
                 # 메시지 복호화
                 decrypted_content = msg.content
-                if msg.message_type == MessageType.TEXT:
+                if msg.message_type == ChatType.TEXT:
                     decrypted_content = encryption_service.decrypt_message(msg.content)
                 
                 messages.append({
@@ -105,7 +105,7 @@ class ChatSocketService:
                     'message': decrypted_content,
                     'timestamp': msg.timestamp.isoformat(),
                     'message_type': msg.message_type,
-                    'encrypted': msg.message_type == MessageType.TEXT
+                    'encrypted': msg.message_type == ChatType.TEXT
                 })
             
             # 채팅 기록 응답

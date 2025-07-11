@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List
-from src.modules.user.models import UserResponse
+from src.modules.user.dto import UserResponse
 from src.modules.user.service import user_service
 from src.core.jwt_utils import jwt_manager
-from .profile_service import user_profile_service
-from .profile_models import UserProfilePublicResponse, UserProfileResponse, UserProfileUpdate, UserProfileCreate
+from .service import user_profile_service
+from .models import UserProfilePublicResponse, UserProfileResponse, UserProfileUpdate, UserProfileCreate
 
 router = APIRouter(prefix="/profile", tags=["사용자 프로필"])
 security = HTTPBearer()

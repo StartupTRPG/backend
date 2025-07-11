@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Optional, List
 from bson import ObjectId
 from src.core.mongodb import get_collection
-from .models import UserResponse
-from .profile_models import (
+from src.modules.user.dto.user_response import UserResponse
+from .models import (
     UserProfileCreate, UserProfileUpdate, UserProfileResponse, 
     UserProfilePublicResponse
 )

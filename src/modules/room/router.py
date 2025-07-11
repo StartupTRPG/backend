@@ -1,15 +1,16 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import List, Optional
-from src.modules.user.models import UserResponse
+from src.modules.user.dto import UserResponse
 from src.modules.user.service import user_service
 from src.core.jwt_utils import jwt_manager
 from .service import room_service
 
-from .models import (
-    RoomCreate, RoomUpdate, RoomResponse, 
-    RoomListResponse, RoomStatus, RoomVisibility
+from .dto import (
+    RoomCreateRequest, RoomUpdateRequest, RoomResponse, 
+    RoomListResponse
 )
+from .models import RoomStatus, RoomVisibility
 
 router = APIRouter(prefix="/rooms", tags=["방"])
 security = HTTPBearer()
@@ -36,7 +37,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 @router.post("", response_model=RoomResponse)
 async def create_room(
-    room_data: RoomCreate,
+    room_data: RoomCreateRequest,
     current_user: UserResponse = Depends(get_current_user)
 ):
     """방 생성"""
@@ -100,7 +101,7 @@ async def get_room(room_id: str):
 @router.put("/{room_id}", response_model=RoomResponse)
 async def update_room(
     room_id: str,
-    room_data: RoomUpdate,
+    room_data: RoomUpdateRequest,
     current_user: UserResponse = Depends(get_current_user)
 ):
     """방 설정 변경 (호스트만)"""

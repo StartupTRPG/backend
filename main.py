@@ -1,25 +1,30 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from datetime import datetime
 import uvicorn
 import logging
+import traceback
+import time
+import json
 
 from src.core.mongodb import connect_to_mongo, close_mongo_connection, ping_database, get_collection
 from src.core.config import settings
-from src.core.jwt_utils import jwt_manager
-
 from src.modules.auth.router import router as auth_router
 from src.modules.room.router import router as room_router
-from src.modules.user.profile_router import router as profile_router
+from src.modules.profile.router import router as profile_router
 from src.modules.chat.router import router as chat_router
-from src.core.socket import create_socketio_app, get_socket_events_documentation
-from src.core.swagger import custom_openapi
+from src.core.socket import create_socketio_app
 
 # 로깅 설정
 logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL.upper()),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG,  # DEBUG 레벨로 설정하여 모든 로그 출력
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("app.log", encoding="utf-8")
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -47,35 +52,45 @@ app = FastAPI(
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
-    description="""
-## 🎮 Madcamp Backend API
-
-이 API는 게임 로비 및 실시간 채팅 기능을 제공합니다.
-
-### 🔌 Socket.IO 연결
-- **URL**: `ws://localhost:8000/socket.io/`
-- **인증**: JWT 토큰 필요
-- **연결 예시**:
-```javascript
-const socket = io('ws://localhost:8000', {
-    auth: {
-        token: 'your-jwt-token'
-    }
-});
-```
-
-### 🔐 인증
-1. `/auth/login` 또는 `/auth/register`로 JWT 토큰 획득
-2. REST API: `Authorization: Bearer <token>` 헤더 사용
-3. Socket.IO: 연결 시 `auth.token`에 토큰 포함
-
-### 📊 주요 기능
-- **사용자 인증**: 회원가입, 로그인, 프로필 관리
-- **방 관리**: 방 생성, 입장, 나가기
-- **실시간 채팅**: 방별 채팅, 메시지 암호화
-- **Socket.IO 이벤트**: 실시간 통신
-    """
 )
+
+# 전역 예외 핸들러 추가
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """전역 예외 핸들러 - 모든 500 에러를 로깅"""
+    logger.error(f"Unhandled exception occurred: {exc}")
+    logger.error(f"Request URL: {request.url}")
+    logger.error(f"Request method: {request.method}")
+    logger.error(f"Request headers: {dict(request.headers)}")
+    logger.error(f"Exception traceback: {traceback.format_exc()}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": "Internal server error",
+            "error_type": type(exc).__name__,
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """HTTP 예외 핸들러 - 4xx, 5xx 에러 로깅"""
+    if exc.status_code >= 500:
+        logger.error(f"HTTP {exc.status_code} error: {exc.detail}")
+        logger.error(f"Request URL: {request.url}")
+        logger.error(f"Request method: {request.method}")
+    elif exc.status_code >= 400:
+        logger.warning(f"HTTP {exc.status_code} error: {exc.detail}")
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "status_code": exc.status_code,
+            "timestamp": datetime.now().isoformat()
+        }
+    )
 
 # CORS 설정
 app.add_middleware(
@@ -113,15 +128,6 @@ async def health_check():
         "database": "connected" if db_status else "disconnected"
     }
 
-@app.get("/socket-docs", tags=["Documentation"])
-async def get_socket_documentation():
-    """Socket.IO 이벤트 문서"""
-    return get_socket_events_documentation()
-
-# 커스텀 OpenAPI 스키마 적용
-app.openapi = lambda: custom_openapi(app)
-
-# Socket.IO 앱 생성
 socket_app = create_socketio_app(app)
 
 if __name__ == "__main__":
@@ -129,5 +135,7 @@ if __name__ == "__main__":
         socket_app,  # Socket.IO가 통합된 앱 사용
         host="0.0.0.0",
         port=8000,
-        log_level=settings.LOG_LEVEL.lower()
+        log_level="debug",  # DEBUG 레벨로 설정
+        access_log=True,
+        use_colors=True
     )
