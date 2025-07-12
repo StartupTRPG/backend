@@ -18,11 +18,9 @@ class SocketEventType(str, Enum):
     ROOM_USERS = "room_users"
     
     # 채팅 관련
-    SEND_MESSAGE = "send_message"
-    NEW_MESSAGE = "new_message"
-    GET_CHAT_HISTORY = "get_chat_history"
-    CHAT_HISTORY = "chat_history"
+    LOBBY_MESSAGE = "lobby_message"
     SYSTEM_MESSAGE = "system_message"
+    GAME_MESSAGE = "game_message"
     
     # 공통
     ERROR = "error"

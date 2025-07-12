@@ -1,5 +1,5 @@
 from enum import Enum
 
 class ChatType(str, Enum):
-    TEXT = "text"           # General text message
-    SYSTEM = "system"       # System message (join/leave notifications, etc.)
+    LOBBY = "lobby"         # Lobby chat message
+    GAME = "game"           # Game chat message

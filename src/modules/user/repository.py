@@ -36,21 +36,28 @@ class MongoUserRepository(UserRepository):
         self._mongo_repo = MongoRepository("users", UserDocument)
     
     async def find_by_id(self, id: str) -> Optional[User]:
-        user_doc = await self._mongo_repo.find_one({"_id": id, "is_deleted": False})
-        if user_doc:
-            return User(
-                id=user_doc.id,
-                username=user_doc.username,
-                email=user_doc.email,
-                nickname=user_doc.nickname,
-                password=user_doc.password,
-                salt=user_doc.salt,
-                created_at=user_doc.created_at,
-                updated_at=user_doc.updated_at,
-                last_login=user_doc.last_login,
-                is_deleted=getattr(user_doc, 'is_deleted', False),
-                deleted_at=getattr(user_doc, 'deleted_at', None)
-            )
+        from bson import ObjectId
+        try:
+            # 문자열 ID를 ObjectId로 변환
+            object_id = ObjectId(id)
+            user_doc = await self._mongo_repo.find_one({"_id": object_id, "is_deleted": False})
+            if user_doc:
+                return User(
+                    id=user_doc.id,
+                    username=user_doc.username,
+                    email=user_doc.email,
+                    nickname=user_doc.nickname,
+                    password=user_doc.password,
+                    salt=user_doc.salt,
+                    created_at=user_doc.created_at,
+                    updated_at=user_doc.updated_at,
+                    last_login=user_doc.last_login,
+                    is_deleted=getattr(user_doc, 'is_deleted', False),
+                    deleted_at=getattr(user_doc, 'deleted_at', None)
+                )
+        except Exception as e:
+            # ObjectId 변환 실패 시 None 반환
+            print(f"Invalid ObjectId format: {id}, error: {e}")
         return None
     
     async def find_one(self, filter_dict):
@@ -130,7 +137,11 @@ class MongoUserRepository(UserRepository):
     
     async def update_last_login(self, user_id: str) -> bool:
         """마지막 로그인 시간 업데이트"""
-        return await self._mongo_repo.update(user_id, {"last_login": datetime.utcnow()})
+        try:
+            return await self._mongo_repo.update(user_id, {"last_login": datetime.utcnow()})
+        except Exception as e:
+            print(f"Error updating last login for user {user_id}: {e}")
+            return False
     
     async def find_by_username_exclude_id(self, username: str, exclude_id: str) -> Optional[User]:
         """사용자명으로 사용자 조회 (특정 ID 제외)"""

@@ -18,8 +18,16 @@ class MongoRoomRepository(RoomRepository):
         from src.core.repository import MongoRepository
         self._mongo_repo = MongoRepository("rooms", Room)
     async def find_by_id(self, id: str) -> Optional[Room]:
-        # soft delete 적용: is_deleted=False 조건 추가
-        return await self._mongo_repo.find_one({"_id": id, "is_deleted": False})
+        from bson import ObjectId
+        try:
+            # 문자열 ID를 ObjectId로 변환
+            object_id = ObjectId(id)
+            # soft delete 적용: is_deleted=False 조건 추가
+            return await self._mongo_repo.find_one({"_id": object_id, "is_deleted": False})
+        except Exception as e:
+            # ObjectId 변환 실패 시 None 반환
+            print(f"Invalid ObjectId format: {id}, error: {e}")
+            return None
     async def find_one(self, filter_dict):
         # soft delete 적용: is_deleted=False 조건 추가
         filter_dict = dict(filter_dict)

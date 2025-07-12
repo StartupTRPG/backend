@@ -1,4 +1,3 @@
-import hashlib
 import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -15,21 +14,6 @@ class RoomService:
     def __init__(self, room_repository: RoomRepository = None):
         self.room_repository = room_repository or get_room_repository()
         # self.player_repository = ... (추후 분리)
-    
-    def _hash_password(self, password: str) -> str:
-        """Hash room password"""
-        return hashlib.sha256(password.encode()).hexdigest()
-    
-    def _verify_password(self, password: str, hashed_password: str) -> bool:
-        """Verify room password"""
-        return self._hash_password(password) == hashed_password
-    
-    def verify_room_password(self, room: RoomResponse, password: str) -> bool:
-        if not room.has_password:
-            return True
-        if not password:
-            return False
-        return True  # Actual verification performed in add_player_to_room
     
     async def create_room(self, room_data: RoomCreateRequest, host_user: UserResponse) -> RoomResponse:
         try:
@@ -59,7 +43,6 @@ class RoomService:
                 max_players=room_data.max_players,  # 검증된 값 사용
                 status=RoomStatus.WAITING,
                 visibility=room_data.visibility,
-                password_hash=self._hash_password(room_data.password) if room_data.password else None,
                 created_at=now,
                 updated_at=now,
                 game_settings=room_data.game_settings or {},
@@ -73,7 +56,6 @@ class RoomService:
             room_data_dict = room.model_dump()
             room_data_dict.update({
                 "current_players": room.current_players,
-                "has_password": room.has_password,
                 "players": [player.model_dump() for player in room.players]
             })
             
@@ -92,7 +74,6 @@ class RoomService:
             room_data_dict = room.model_dump()
             room_data_dict.update({
                 "current_players": room.current_players,
-                "has_password": room.has_password,
                 "players": [player.model_dump() for player in room.players]
             })
             
@@ -118,8 +99,7 @@ class RoomService:
         for room in rooms:
             room_data = room.model_dump()
             room_data.update({
-                "current_players": room.current_players,  # 실제 플레이어 수
-                "has_password": room.has_password
+                "current_players": room.current_players  # 실제 플레이어 수
             })
             room_list_responses.append(RoomListResponse(**room_data))
         
@@ -150,8 +130,6 @@ class RoomService:
                 update_data["max_players"] = room_data.max_players
             if room_data.visibility is not None:
                 update_data["visibility"] = room_data.visibility
-            if room_data.password is not None:
-                update_data["password_hash"] = self._hash_password(room_data.password) if room_data.password else None
             if room_data.game_settings is not None:
                 update_data["game_settings"] = room_data.game_settings
             
@@ -192,24 +170,22 @@ class RoomService:
             logger.error(f"Error starting game in room '{room_id}': {str(e)}")
             raise
     
-    async def add_player_to_room(self, room_id: str, user_id: str, username: str, password: str = "") -> bool:
+    async def add_player_to_room(self, room_id: str, user_id: str, username: str) -> bool:
         """방에 플레이어 추가"""
         try:
             room = await self.room_repository.find_by_id(room_id)
             if not room:
                 return False
             
-            # 비밀번호 확인
-            if room.has_password and not self._verify_password(password, room.password_hash):
-                return False
-            
             # 방이 가득 찼는지 확인
             if room.current_players >= room.max_players:
                 return False
             
-            # 이미 참가한 플레이어인지 확인
-            if room.get_player(user_id):
-                return False
+            # 이미 참가한 플레이어인지 확인 - 이미 있으면 성공으로 처리
+            existing_player = room.get_player(user_id)
+            if existing_player:
+                logger.info(f"Player {username} already in room {room_id}")
+                return True  # 이미 있는 사용자는 성공으로 처리
             
             from .models import RoomPlayer
             

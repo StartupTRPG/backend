@@ -26,6 +26,15 @@ class AuthSocketService:
                 await sio.disconnect(sid)
                 return None
             
+            # 세션에 사용자 정보 저장
+            session = {
+                'user_id': payload["user_id"],
+                'username': payload.get("username", ""),
+                'access_token': token,
+                'connected_at': datetime.utcnow().isoformat()
+            }
+            await sio.save_session(sid, session)
+            
             # 연결 성공 응답
             await sio.emit('connect_success', {
                 'user_id': payload["user_id"],

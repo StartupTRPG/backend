@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 
 from .handler import SocketMessageHandler
-from .interfaces import SocketEventType
+from .models.socket_event_type import SocketEventType
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -77,6 +77,21 @@ def create_socketio_app(fastapi_app: FastAPI):
     async def get_chat_history(sid, data):
         """채팅 기록 조회 이벤트"""
         await message_handler.handle_message(SocketEventType.GET_CHAT_HISTORY, sid, data)
+    
+    @sio.event
+    async def lobby_message(sid, data):
+        """로비 메시지 이벤트"""
+        await message_handler.handle_message(SocketEventType.LOBBY_MESSAGE, sid, data)
+    
+    @sio.event
+    async def system_message(sid, data):
+        """시스템 메시지 이벤트"""
+        await message_handler.handle_message(SocketEventType.SYSTEM_MESSAGE, sid, data)
+    
+    @sio.event
+    async def game_message(sid, data):
+        """게임 메시지 이벤트"""
+        await message_handler.handle_message(SocketEventType.GAME_MESSAGE, sid, data)
     
     # Socket.IO 앱을 FastAPI에 마운트
     socket_app = socketio.ASGIApp(sio, fastapi_app)

@@ -7,6 +7,7 @@ class ChatMessage(BaseModel):
     """Chat message database schema"""
     id: Optional[str] = None
     room_id: str
+    user_id: str
     username: str
     display_name: str
     message_type: ChatType

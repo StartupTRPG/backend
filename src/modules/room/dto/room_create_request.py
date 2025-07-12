@@ -8,5 +8,4 @@ class RoomCreateRequest(BaseModel):
     description: Optional[str] = None
     max_players: int = Field(default=6, ge=4, le=6, description="방 최대 인원 (4~6명)")
     visibility: RoomVisibility = RoomVisibility.PUBLIC
-    password: str  # 비밀번호 필수
     game_settings: dict = {} 

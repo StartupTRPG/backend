@@ -14,18 +14,12 @@ class Room(BaseModel):
     max_players: int
     status: RoomStatus
     visibility: RoomVisibility
-    password_hash: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     game_settings: dict = {}
     players: List[RoomPlayer] = []  # 방에 있는 플레이어 목록
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None
-    
-    @property
-    def has_password(self) -> bool:
-        """방에 비밀번호가 있는지 확인"""
-        return self.password_hash is not None
     
     @property
     def current_players(self) -> int:

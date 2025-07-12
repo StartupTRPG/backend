@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 import logging
-from .interfaces import BaseSocketMessage, SocketEventType
+from .interfaces import BaseSocketMessage
+from .models.socket_event_type import SocketEventType
 import socketio
 
 logger = logging.getLogger(__name__)
@@ -99,23 +100,10 @@ class RoomUsersStrategy(SocketMessageStrategy):
     def get_event_type(self) -> SocketEventType:
         return SocketEventType.GET_ROOM_USERS
 
-class ChatSendMessageStrategy(SocketMessageStrategy):
-    """Chat message sending handling strategy"""
-    
-    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # Session validation required
-        session = await self._validate_session(sio, sid)
-        if not session:
-            return None
-        
-        from src.modules.chat.socket_service import ChatSocketService
-        return await ChatSocketService.handle_send_message(sio, sid, session, data)
-    
-    def get_event_type(self) -> SocketEventType:
-        return SocketEventType.SEND_MESSAGE
 
-class ChatHistoryStrategy(SocketMessageStrategy):
-    """Chat history query handling strategy"""
+
+class LobbyMessageStrategy(SocketMessageStrategy):
+    """Lobby message handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
         # Session validation required
@@ -123,8 +111,188 @@ class ChatHistoryStrategy(SocketMessageStrategy):
         if not session:
             return None
         
-        from src.modules.chat.socket_service import ChatSocketService
-        return await ChatSocketService.handle_get_chat_history(sio, sid, session, data)
+        try:
+            room_id = data.get('room_id')
+            message = data.get('message', '').strip()
+            message_type = data.get('message_type', 'text')
+            
+            if not room_id:
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
+                return None
+            
+            if not message:
+                await sio.emit('error', {'message': 'Message content is required.'}, room=sid)
+                return None
+            
+            if len(message) > 1000:
+                await sio.emit('error', {'message': 'Message is too long. (Max 1000 characters)'}, room=sid)
+                return None
+            
+            from datetime import datetime
+            import time
+            
+            # 메시지 데이터 구성
+            current_time = datetime.utcnow()
+            message_data = {
+                'id': f"lobby_{int(time.time() * 1000)}",
+                'user_id': session['user_id'],
+                'username': session['username'],
+                'display_name': session.get('display_name', session['username']),
+                'message': message,
+                'timestamp': current_time.isoformat(),
+                'message_type': message_type,
+                'encrypted': False
+            }
+            
+            # 해당 방의 모든 사용자에게 브로드캐스트
+            await sio.emit('lobby_message', message_data, room=room_id)
+            
+            logger.info(f"Lobby message sent by {session['username']} in room {room_id}")
+            
+            from .interfaces import BaseSocketMessage
+            return BaseSocketMessage(
+                event_type="lobby_message",
+                data={
+                    'room_id': room_id,
+                    'message': message,
+                    'user_id': session['user_id'],
+                    'username': session['username']
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Lobby message error for {sid}: {str(e)}")
+            await sio.emit('error', {'message': 'An error occurred while sending the message.'}, room=sid)
+            return None
     
     def get_event_type(self) -> SocketEventType:
-        return SocketEventType.GET_CHAT_HISTORY 
+        return SocketEventType.LOBBY_MESSAGE
+
+class GameMessageStrategy(SocketMessageStrategy):
+    """Game message handling strategy"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        # Session validation required
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        try:
+            room_id = data.get('room_id')
+            message = data.get('message', '').strip()
+            message_type = data.get('message_type', 'text')
+            
+            if not room_id:
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
+                return None
+            
+            if not message:
+                await sio.emit('error', {'message': 'Message content is required.'}, room=sid)
+                return None
+            
+            if len(message) > 1000:
+                await sio.emit('error', {'message': 'Message is too long. (Max 1000 characters)'}, room=sid)
+                return None
+            
+            from datetime import datetime
+            import time
+            
+            # 메시지 데이터 구성
+            current_time = datetime.utcnow()
+            message_data = {
+                'id': f"game_{int(time.time() * 1000)}",
+                'user_id': session['user_id'],
+                'username': session['username'],
+                'display_name': session.get('display_name', session['username']),
+                'message': message,
+                'timestamp': current_time.isoformat(),
+                'message_type': message_type,
+                'encrypted': False
+            }
+            
+            # 해당 방의 모든 사용자에게 브로드캐스트
+            await sio.emit('game_message', message_data, room=room_id)
+            
+            logger.info(f"Game message sent by {session['username']} in room {room_id}")
+            
+            from .interfaces import BaseSocketMessage
+            return BaseSocketMessage(
+                event_type="game_message",
+                data={
+                    'room_id': room_id,
+                    'message': message,
+                    'user_id': session['user_id'],
+                    'username': session['username']
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Game message error for {sid}: {str(e)}")
+            await sio.emit('error', {'message': 'An error occurred while sending the message.'}, room=sid)
+            return None
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.GAME_MESSAGE
+
+class SystemMessageStrategy(SocketMessageStrategy):
+    """System message handling strategy"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        # Session validation required
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        try:
+            room_id = data.get('room_id')
+            message = data.get('message', '').strip()
+            message_type = data.get('message_type', 'system')
+            metadata = data.get('metadata', {})
+            
+            if not room_id:
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
+                return None
+            
+            if not message:
+                await sio.emit('error', {'message': 'Message content is required.'}, room=sid)
+                return None
+            
+            from datetime import datetime
+            import time
+            
+            # 메시지 데이터 구성
+            current_time = datetime.utcnow()
+            message_data = {
+                'id': f"system_{int(time.time() * 1000)}",
+                'user_id': 'system',
+                'username': 'System',
+                'display_name': 'System',
+                'message': message,
+                'timestamp': current_time.isoformat(),
+                'message_type': message_type,
+                'metadata': metadata,
+                'encrypted': False
+            }
+            
+            # 해당 방의 모든 사용자에게 브로드캐스트
+            await sio.emit('system_message', message_data, room=room_id)
+            
+            logger.info(f"System message sent in room {room_id}: {message}")
+            
+            from .interfaces import BaseSocketMessage
+            return BaseSocketMessage(
+                event_type="system_message",
+                data={
+                    'room_id': room_id,
+                    'message': message,
+                    'metadata': metadata
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"System message error for {sid}: {str(e)}")
+            await sio.emit('error', {'message': 'An error occurred while sending the system message.'}, room=sid)
+            return None
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.SYSTEM_MESSAGE 

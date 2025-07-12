@@ -19,7 +19,7 @@ class ChatService:
         username: str, 
         display_name: str, 
         content: str, 
-        message_type: ChatType = ChatType.TEXT
+        message_type: ChatType = ChatType.LOBBY
     ) -> ChatMessageResponse:
         """Save chat message"""
         try:
@@ -27,6 +27,7 @@ class ChatService:
             message = ChatMessage(
                 id=None,
                 room_id=room_id,
+                user_id=user_id,
                 username=username,
                 display_name=display_name,
                 message_type=message_type,
@@ -69,7 +70,7 @@ class ChatService:
                 messages=[ChatMessageResponse(
                     id=m.id,
                     room_id=m.room_id,
-                    user_id=None,  # user_id 필드는 ChatMessage에 없음. 필요시 모델 수정
+                    user_id=getattr(m, 'user_id', m.username),  # 기존 메시지는 username을 user_id로 사용
                     username=m.username,
                     display_name=m.display_name,
                     message_type=m.message_type,
@@ -83,17 +84,6 @@ class ChatService:
         except Exception as e:
             logger.error(f"Error fetching messages for room {room_id}: {str(e)}")
             raise
-    
-    async def save_system_message(self, room_id: str, content: str) -> ChatMessageResponse:
-        logger.info(f"Saving system message in room {room_id}: {content}")
-        return await self.save_message(
-            room_id=room_id,
-            user_id="system",
-            username="System",
-            display_name="System",
-            content=content,
-            message_type=ChatType.SYSTEM
-        )
     
     async def delete_room_messages(self, room_id: str) -> int:
         try:

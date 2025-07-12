@@ -18,23 +18,20 @@ class RoomSocketService:
                 await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
                 return None
             
-            password = data.get('password', '')
-            
             # 방 존재 확인
             room = await room_service.get_room(room_id)
             if not room:
                 await sio.emit('error', {'message': 'Room not found.'}, room=sid)
                 return None
             
-            # 비밀번호 확인
-            if not room_service.verify_room_password(room, password):
-                await sio.emit('error', {'message': 'Incorrect password.'}, room=sid)
-                return None
-            
             # 방 최대 인원 확인 (새로운 Room 모델 구조 사용)
             if room.current_players >= room.max_players:
                 await sio.emit('error', {'message': 'Room is full.'}, room=sid)
                 return None
+            
+            # 방 입장 처리
+            user_id = session['user_id']
+            username = session['username']
             
             # 세션 매니저를 통한 방 입장 (여러 방 접속 방지)
             from src.core.session_manager import session_manager
@@ -48,12 +45,8 @@ class RoomSocketService:
             if current_room and current_room != room_id:
                 await RoomSocketService.handle_leave_room_internal(sio, sid, current_room)
             
-            # 방 입장 처리
-            user_id = session['user_id']
-            username = session['username']
-            
             # 데이터베이스에 플레이어 추가
-            success = await room_service.add_player_to_room(room_id, user_id, username, password)
+            success = await room_service.add_player_to_room(room_id, user_id, username)
             if not success:
                 await sio.emit('error', {'message': 'Failed to join room.'}, room=sid)
                 return None
@@ -100,7 +93,10 @@ class RoomSocketService:
             }, room=sid)
             
             # 시스템 메시지 저장 및 전송
-            await RoomSocketService._send_system_message(sio, room_id, f'{username} has joined.')
+            await RoomSocketService._send_system_message(
+                sio, room_id, f'{username} has joined.', 
+                metadata={"user_id": user_id, "username": username}
+            )
             
             # 다른 사용자들에게 입장 알림
             await sio.emit('user_joined', {
@@ -117,8 +113,7 @@ class RoomSocketService:
                 event_type=SocketEventType.JOIN_ROOM,
                 room_id=room_id,
                 user_id=session['user_id'],
-                username=session['username'],
-                password=password
+                username=session['username']
             )
             
         except Exception as e:
@@ -244,7 +239,10 @@ class RoomSocketService:
             }, room=sid)
             
             # 시스템 메시지 저장 및 전송
-            await RoomSocketService._send_system_message(sio, room_id, f'{username} has left.')
+            await RoomSocketService._send_system_message(
+                sio, room_id, f'{username} has left.', 
+                metadata={"user_id": user_id, "username": username}
+            )
             
             # 다른 사용자들에게 퇴장 알림
             await sio.emit('user_left', {
@@ -261,21 +259,19 @@ class RoomSocketService:
             logger.error(f"Leave room internal error: {str(e)}")
     
     @staticmethod
-    async def _send_system_message(sio, room_id: str, content: str):
+    async def _send_system_message(sio, room_id: str, content: str, metadata: dict = {}):
         """시스템 메시지 전송"""
-        from src.modules.chat.service import chat_service
-        
-        # 시스템 메시지는 암호화하지 않음
-        system_message = await chat_service.save_system_message(room_id, content)
+        from datetime import datetime
         
         # 시스템 메시지를 채팅으로 전송
-        await sio.emit('new_message', {
-            'id': system_message.id,
+        await sio.emit('system_message', {
+            'id': f"system_{int(datetime.utcnow().timestamp() * 1000)}",
             'user_id': 'system',
             'username': 'System',
             'display_name': 'System',
-            'message': system_message.content,
-            'timestamp': system_message.timestamp.isoformat(),
+            'message': content,
+            'timestamp': datetime.utcnow().isoformat(),
             'message_type': 'system',
+            'metadata': metadata,
             'encrypted': False
         }, room=room_id) 
