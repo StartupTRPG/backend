@@ -21,7 +21,7 @@ class ChatService:
         content: str, 
         message_type: ChatType = ChatType.TEXT
     ) -> ChatMessageResponse:
-        """채팅 메시지 저장"""
+        """Save chat message"""
         try:
             logger.info(f"Saving message in room {room_id} by user {username}")
             message = ChatMessage(
@@ -55,7 +55,7 @@ class ChatService:
         page: int = 1, 
         limit: int = 50
     ) -> RoomChatHistoryResponse:
-        """방의 채팅 메시지 조회 (페이지네이션)"""
+        """Get room chat messages (with pagination)"""
         try:
             logger.info(f"Fetching messages for room {room_id} (page: {page}, limit: {limit})")
             skip = (page - 1) * limit
@@ -89,8 +89,8 @@ class ChatService:
         return await self.save_message(
             room_id=room_id,
             user_id="system",
-            username="시스템",
-            display_name="시스템",
+            username="System",
+            display_name="System",
             content=content,
             message_type=ChatType.SYSTEM
         )
@@ -98,7 +98,7 @@ class ChatService:
     async def delete_room_messages(self, room_id: str) -> int:
         try:
             logger.warning(f"Deleting all messages for room {room_id}")
-            # MongoRepository의 delete_many는 직접 구현 필요. 임시로 pass
+            # MongoRepository's delete_many needs direct implementation. Temporarily pass
             # result = await self.chat_repository.delete_many({"room_id": room_id})
             # return result.deleted_count
             return 0

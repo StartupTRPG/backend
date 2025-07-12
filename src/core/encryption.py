@@ -8,24 +8,24 @@ from typing import Optional
 from src.core.config import settings
 
 class EncryptionService:
-    """양방향 암호화 서비스"""
+    """Bidirectional encryption service"""
     
     def __init__(self):
         self._fernet = None
         self._initialize_encryption()
     
     def _initialize_encryption(self):
-        """암호화 키 초기화"""
+        """Initialize encryption key"""
         try:
-            # 환경변수에서 암호화 키 가져오기
+            # Get encryption key from environment variable
             encryption_key = getattr(settings, 'ENCRYPTION_KEY', None)
             
             if not encryption_key:
-                raise ValueError("ENCRYPTION_KEY 환경변수가 설정되지 않았습니다.")
+                raise ValueError("ENCRYPTION_KEY environment variable is not set.")
             
-            # PBKDF2를 사용해 키 파생
+            # Use PBKDF2 for key derivation
             password = encryption_key.encode()
-            salt = b'madcamp_salt_2024'  # 실제 운영환경에서는 랜덤 salt 사용
+            salt = b'madcamp_salt_2024'  # Use random salt in production
             
             kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
@@ -38,54 +38,54 @@ class EncryptionService:
             self._fernet = Fernet(key)
             
         except Exception as e:
-            print(f"암호화 초기화 오류: {e}")
-            # 기본 키 생성
+            print(f"Encryption initialization error: {e}")
+            # Generate default key
             key = Fernet.generate_key()
             self._fernet = Fernet(key)
     
     def encrypt_message(self, message: str) -> str:
-        """메시지 암호화"""
+        """Encrypt message"""
         try:
             if not message:
                 return ""
             
-            # 문자열을 바이트로 변환 후 암호화
+            # Convert string to bytes then encrypt
             encrypted_bytes = self._fernet.encrypt(message.encode('utf-8'))
             
-            # base64로 인코딩하여 문자열로 변환
+            # Encode with base64 to convert to string
             encrypted_string = base64.urlsafe_b64encode(encrypted_bytes).decode('utf-8')
             
             return encrypted_string
             
         except Exception as e:
-            print(f"메시지 암호화 오류: {e}")
-            return message  # 암호화 실패 시 원본 반환
+            print(f"Encryption error: {e}")
+            return message  # Return original if encryption fails
     
     def decrypt_message(self, encrypted_message: str) -> str:
-        """메시지 복호화"""
+        """Decrypt message"""
         try:
             if not encrypted_message:
                 return ""
             
-            # base64 디코딩
+            # Base64 decode
             encrypted_bytes = base64.urlsafe_b64decode(encrypted_message.encode('utf-8'))
             
-            # 복호화 후 문자열로 변환
+            # Decrypt then convert to string
             decrypted_bytes = self._fernet.decrypt(encrypted_bytes)
             decrypted_string = decrypted_bytes.decode('utf-8')
             
             return decrypted_string
             
         except Exception as e:
-            print(f"메시지 복호화 오류: {e}")
-            return encrypted_message  # 복호화 실패 시 원본 반환
+            print(f"Decryption error: {e}")
+            return encrypted_message  # Return original if decryption fails
     
     def hash_message(self, message: str) -> str:
-        """메시지 해시 생성 (검증용)"""
+        """Generate message hash (for verification)"""
         try:
             return hashlib.sha256(message.encode('utf-8')).hexdigest()
         except Exception as e:
-            print(f"메시지 해시 생성 오류: {e}")
+            print(f"Hash generation error: {e}")
             return ""
     
     def verify_message_integrity(self, message: str, message_hash: str) -> bool:
@@ -93,7 +93,7 @@ class EncryptionService:
         try:
             return self.hash_message(message) == message_hash
         except Exception as e:
-            print(f"메시지 무결성 검증 오류: {e}")
+            print(f"Message integrity verification error: {e}")
             return False
 
 # 싱글톤 인스턴스

@@ -3,6 +3,7 @@ from typing import Optional, List
 from src.core.repository import BaseRepository
 from .models import User, UserDocument
 from .dto import UserResponse
+from datetime import datetime
 
 class UserRepository(BaseRepository[User]):
     """User Repository 인터페이스"""
@@ -35,8 +36,7 @@ class MongoUserRepository(UserRepository):
         self._mongo_repo = MongoRepository("users", UserDocument)
     
     async def find_by_id(self, id: str) -> Optional[User]:
-        """ID로 사용자 조회"""
-        user_doc = await self._mongo_repo.find_by_id(id)
+        user_doc = await self._mongo_repo.find_one({"_id": id, "is_deleted": False})
         if user_doc:
             return User(
                 id=user_doc.id,
@@ -47,12 +47,15 @@ class MongoUserRepository(UserRepository):
                 salt=user_doc.salt,
                 created_at=user_doc.created_at,
                 updated_at=user_doc.updated_at,
-                last_login=user_doc.last_login
+                last_login=user_doc.last_login,
+                is_deleted=getattr(user_doc, 'is_deleted', False),
+                deleted_at=getattr(user_doc, 'deleted_at', None)
             )
         return None
     
     async def find_one(self, filter_dict):
-        """조건으로 단일 사용자 조회"""
+        filter_dict = dict(filter_dict)
+        filter_dict["is_deleted"] = False
         user_doc = await self._mongo_repo.find_one(filter_dict)
         if user_doc:
             return User(
@@ -64,12 +67,15 @@ class MongoUserRepository(UserRepository):
                 salt=user_doc.salt,
                 created_at=user_doc.created_at,
                 updated_at=user_doc.updated_at,
-                last_login=user_doc.last_login
+                last_login=user_doc.last_login,
+                is_deleted=getattr(user_doc, 'is_deleted', False),
+                deleted_at=getattr(user_doc, 'deleted_at', None)
             )
         return None
     
     async def find_many(self, filter_dict, skip: int = 0, limit: int = 0) -> List[User]:
-        """조건으로 여러 사용자 조회"""
+        filter_dict = dict(filter_dict)
+        filter_dict["is_deleted"] = False
         user_docs = await self._mongo_repo.find_many(filter_dict, skip, limit)
         return [
             User(
@@ -81,12 +87,13 @@ class MongoUserRepository(UserRepository):
                 salt=doc.salt,
                 created_at=doc.created_at,
                 updated_at=doc.updated_at,
-                last_login=doc.last_login
+                last_login=doc.last_login,
+                is_deleted=getattr(doc, 'is_deleted', False),
+                deleted_at=getattr(doc, 'deleted_at', None)
             ) for doc in user_docs
         ]
     
     async def create(self, entity: User) -> str:
-        """사용자 생성"""
         user_doc = UserDocument(
             username=entity.username,
             email=entity.email,
@@ -95,20 +102,22 @@ class MongoUserRepository(UserRepository):
             salt=entity.salt,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
-            last_login=entity.last_login
+            last_login=entity.last_login,
+            is_deleted=getattr(entity, 'is_deleted', False),
+            deleted_at=getattr(entity, 'deleted_at', None)
         )
         return await self._mongo_repo.create(user_doc)
     
     async def update(self, id: str, update_dict) -> bool:
-        """사용자 업데이트"""
         return await self._mongo_repo.update(id, update_dict)
     
     async def delete(self, id: str) -> bool:
-        """사용자 삭제"""
-        return await self._mongo_repo.delete(id)
+        # soft delete: 실제 삭제 대신 is_deleted, deleted_at update
+        return await self._mongo_repo.update(id, {"is_deleted": True, "deleted_at": datetime.utcnow()})
     
     async def count(self, filter_dict) -> int:
-        """조건에 맞는 사용자 개수 조회"""
+        filter_dict = dict(filter_dict)
+        filter_dict["is_deleted"] = False
         return await self._mongo_repo.count(filter_dict)
     
     async def find_by_username(self, username: str) -> Optional[User]:
@@ -121,7 +130,6 @@ class MongoUserRepository(UserRepository):
     
     async def update_last_login(self, user_id: str) -> bool:
         """마지막 로그인 시간 업데이트"""
-        from datetime import datetime
         return await self._mongo_repo.update(user_id, {"last_login": datetime.utcnow()})
     
     async def find_by_username_exclude_id(self, username: str, exclude_id: str) -> Optional[User]:

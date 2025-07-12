@@ -15,7 +15,7 @@ class RoomSocketService:
         try:
             room_id = data.get('room_id')
             if not room_id:
-                await sio.emit('error', {'message': '방 ID가 필요합니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
                 return None
             
             password = data.get('password', '')
@@ -23,24 +23,24 @@ class RoomSocketService:
             # 방 존재 확인
             room = await room_service.get_room(room_id)
             if not room:
-                await sio.emit('error', {'message': '방을 찾을 수 없습니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Room not found.'}, room=sid)
                 return None
             
             # 비밀번호 확인
             if not room_service.verify_room_password(room, password):
-                await sio.emit('error', {'message': '비밀번호가 올바르지 않습니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Incorrect password.'}, room=sid)
                 return None
             
             # 방 최대 인원 확인 (새로운 Room 모델 구조 사용)
             if room.current_players >= room.max_players:
-                await sio.emit('error', {'message': '방이 가득 찼습니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Room is full.'}, room=sid)
                 return None
             
             # 세션 매니저를 통한 방 입장 (여러 방 접속 방지)
             from src.core.session_manager import session_manager
             room_joined = await session_manager.join_room(sid, user_id, room_id)
             if not room_joined:
-                await sio.emit('error', {'message': '방 입장에 실패했습니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Failed to join room.'}, room=sid)
                 return None
             
             # 이미 다른 방에 있다면 나가기 (기존 로직 유지)
@@ -55,7 +55,7 @@ class RoomSocketService:
             # 데이터베이스에 플레이어 추가
             success = await room_service.add_player_to_room(room_id, user_id, username, password)
             if not success:
-                await sio.emit('error', {'message': '방 입장에 실패했습니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Failed to join room.'}, room=sid)
                 return None
             
             # Socket.IO 방에 입장
@@ -96,18 +96,18 @@ class RoomSocketService:
                 'room_id': room_id,
                 'room_name': room.title,
                 'updated_token': updated_token,
-                'message': f'{room.title}에 입장했습니다.'
+                'message': f'Joined {room.title}.'
             }, room=sid)
             
             # 시스템 메시지 저장 및 전송
-            await RoomSocketService._send_system_message(sio, room_id, f'{username}님이 입장했습니다.')
+            await RoomSocketService._send_system_message(sio, room_id, f'{username} has joined.')
             
             # 다른 사용자들에게 입장 알림
             await sio.emit('user_joined', {
                 'user_id': user_id,
                 'username': username,
                 'display_name': session.get('display_name', username),
-                'message': f'{username}님이 입장했습니다.',
+                'message': f'{username} has joined.',
                 'timestamp': datetime.utcnow().isoformat()
             }, room=room_id, skip_sid=sid)
             
@@ -123,7 +123,7 @@ class RoomSocketService:
             
         except Exception as e:
             logger.error(f"Join room error for {sid}: {str(e)}")
-            await sio.emit('error', {'message': '방 입장 중 오류가 발생했습니다.'}, room=sid)
+            await sio.emit('error', {'message': 'An error occurred while joining the room.'}, room=sid)
             return None
     
     @staticmethod
@@ -132,7 +132,7 @@ class RoomSocketService:
         try:
             room_id = data.get('room_id') or session.get('current_room')
             if not room_id:
-                await sio.emit('error', {'message': '방 ID가 필요합니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
                 return None
             
             await RoomSocketService.handle_leave_room_internal(sio, sid, room_id)
@@ -146,7 +146,7 @@ class RoomSocketService:
             
         except Exception as e:
             logger.error(f"Leave room error for {sid}: {str(e)}")
-            await sio.emit('error', {'message': '방 나가기 중 오류가 발생했습니다.'}, room=sid)
+            await sio.emit('error', {'message': 'An error occurred while leaving the room.'}, room=sid)
             return None
     
     @staticmethod
@@ -155,7 +155,7 @@ class RoomSocketService:
         try:
             room_id = data.get('room_id') or session.get('current_room')
             if not room_id:
-                await sio.emit('error', {'message': '방 ID가 필요합니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
                 return None
             
             # 데이터베이스에서 방 사용자 목록 조회
@@ -190,7 +190,7 @@ class RoomSocketService:
             
         except Exception as e:
             logger.error(f"Get room users error for {sid}: {str(e)}")
-            await sio.emit('error', {'message': '사용자 목록 조회 중 오류가 발생했습니다.'}, room=sid)
+            await sio.emit('error', {'message': 'An error occurred while retrieving room users.'}, room=sid)
             return None
     
     @staticmethod
@@ -240,18 +240,18 @@ class RoomSocketService:
             # 방 나가기 성공 응답
             await sio.emit('room_left', {
                 'room_id': room_id,
-                'message': '방에서 나갔습니다.'
+                'message': 'You have left the room.'
             }, room=sid)
             
             # 시스템 메시지 저장 및 전송
-            await RoomSocketService._send_system_message(sio, room_id, f'{username}님이 나갔습니다.')
+            await RoomSocketService._send_system_message(sio, room_id, f'{username} has left.')
             
             # 다른 사용자들에게 퇴장 알림
             await sio.emit('user_left', {
                 'user_id': user_id,
                 'username': username,
                 'display_name': session.get('display_name', username),
-                'message': f'{username}님이 나갔습니다.',
+                'message': f'{username} has left.',
                 'timestamp': datetime.utcnow().isoformat()
             }, room=room_id)
             
@@ -272,8 +272,8 @@ class RoomSocketService:
         await sio.emit('new_message', {
             'id': system_message.id,
             'user_id': 'system',
-            'username': '시스템',
-            'display_name': '시스템',
+            'username': 'System',
+            'display_name': 'System',
             'message': system_message.content,
             'timestamp': system_message.timestamp.isoformat(),
             'message_type': 'system',

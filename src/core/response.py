@@ -4,30 +4,30 @@ from pydantic import BaseModel, Field
 T = TypeVar('T')
 
 class ApiResponse(BaseModel, Generic[T]):
-    """공통 API 응답 모델"""
+    """Common API response model"""
     data: T
     message: str
-    success: bool = Field(default=True, description="요청 성공 여부")
+    success: bool = Field(default=True, description="Request success status")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "data": {},
-                "message": "요청이 성공적으로 처리되었습니다.",
+                "message": "Request processed successfully.",
                 "success": True
             }
         }
 
 class ErrorResponse(BaseModel):
-    """에러 응답 모델"""
+    """Error response model"""
     message: str
-    success: bool = Field(default=False, description="요청 성공 여부")
-    error_code: Optional[str] = Field(default=None, description="에러 코드")
+    success: bool = Field(default=False, description="Request success status")
+    error_code: Optional[str] = Field(default=None, description="Error code")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "message": "요청 처리 중 오류가 발생했습니다.",
+                "message": "An error occurred while processing the request.",
                 "success": False,
                 "error_code": "INTERNAL_ERROR"
             }

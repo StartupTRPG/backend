@@ -7,36 +7,36 @@ import socketio
 logger = logging.getLogger(__name__)
 
 class SocketMessageStrategy(ABC):
-    """소켓 메시지 처리 전략 인터페이스"""
+    """Socket message strategy interface"""
     
     @abstractmethod
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        """메시지 처리 추상 메서드 - session 파라미터 제거"""
+        """Message handling abstract method - session parameter removed"""
         pass
     
     @abstractmethod
     def get_event_type(self) -> SocketEventType:
-        """이벤트 타입 반환"""
+        """Returns event type"""
         pass
     
     async def _validate_session(self, sio: socketio.AsyncServer, sid: str) -> Optional[Dict[str, Any]]:
-        """세션 검증 공통 메서드"""
+        """Common session validation method"""
         try:
             session = await sio.get_session(sid)
             if not session:
-                await sio.emit('error', {'message': '세션을 찾을 수 없습니다.'}, room=sid)
+                await sio.emit('error', {'message': 'Session not found.'}, room=sid)
                 return None
             return session
         except Exception as e:
             logger.error(f"Session validation error for {sid}: {str(e)}")
-            await sio.emit('error', {'message': '세션 검증 중 오류가 발생했습니다.'}, room=sid)
+            await sio.emit('error', {'message': 'An error occurred during session validation.'}, room=sid)
             return None
 
 class AuthConnectStrategy(SocketMessageStrategy):
-    """인증 연결 처리 전략"""
+    """Authentication connection handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 연결 시에는 세션 검증 불필요
+        # Connection does not require session validation
         from src.modules.auth.socket_service import AuthSocketService
         return await AuthSocketService.handle_connect(sio, sid, data)
     
@@ -44,10 +44,10 @@ class AuthConnectStrategy(SocketMessageStrategy):
         return SocketEventType.CONNECT
 
 class AuthDisconnectStrategy(SocketMessageStrategy):
-    """인증 연결 해제 처리 전략"""
+    """Authentication disconnection handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 연결 해제 시에는 세션 검증 불필요
+        # Disconnection does not require session validation
         from src.modules.auth.socket_service import AuthSocketService
         return await AuthSocketService.handle_disconnect(sio, sid, data)
     
@@ -55,10 +55,10 @@ class AuthDisconnectStrategy(SocketMessageStrategy):
         return SocketEventType.DISCONNECT
 
 class RoomJoinStrategy(SocketMessageStrategy):
-    """방 입장 처리 전략"""
+    """Room entry handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 세션 검증 필요
+        # Session validation required
         session = await self._validate_session(sio, sid)
         if not session:
             return None
@@ -70,10 +70,10 @@ class RoomJoinStrategy(SocketMessageStrategy):
         return SocketEventType.JOIN_ROOM
 
 class RoomLeaveStrategy(SocketMessageStrategy):
-    """방 나가기 처리 전략"""
+    """Room exit handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 세션 검증 필요
+        # Session validation required
         session = await self._validate_session(sio, sid)
         if not session:
             return None
@@ -85,10 +85,10 @@ class RoomLeaveStrategy(SocketMessageStrategy):
         return SocketEventType.LEAVE_ROOM
 
 class RoomUsersStrategy(SocketMessageStrategy):
-    """방 사용자 목록 조회 처리 전략"""
+    """Room user list query handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 세션 검증 필요
+        # Session validation required
         session = await self._validate_session(sio, sid)
         if not session:
             return None
@@ -100,10 +100,10 @@ class RoomUsersStrategy(SocketMessageStrategy):
         return SocketEventType.GET_ROOM_USERS
 
 class ChatSendMessageStrategy(SocketMessageStrategy):
-    """채팅 메시지 전송 처리 전략"""
+    """Chat message sending handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 세션 검증 필요
+        # Session validation required
         session = await self._validate_session(sio, sid)
         if not session:
             return None
@@ -115,10 +115,10 @@ class ChatSendMessageStrategy(SocketMessageStrategy):
         return SocketEventType.SEND_MESSAGE
 
 class ChatHistoryStrategy(SocketMessageStrategy):
-    """채팅 기록 조회 처리 전략"""
+    """Chat history query handling strategy"""
     
     async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # 세션 검증 필요
+        # Session validation required
         session = await self._validate_session(sio, sid)
         if not session:
             return None

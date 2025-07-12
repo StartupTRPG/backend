@@ -3,7 +3,7 @@ from datetime import datetime
 from src.modules.chat.enum import ChatType
 
 class ChatMessageResponse(BaseModel):
-    """채팅 메시지 응답 DTO"""
+    """Chat message response DTO"""
     id: str
     room_id: str
     user_id: str

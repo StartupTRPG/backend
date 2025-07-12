@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List
 from src.core.repository import BaseRepository
 from .models import Room
+from datetime import datetime
 
 class RoomRepository(BaseRepository[Room]):
     """Room Repository 인터페이스"""
@@ -17,23 +18,33 @@ class MongoRoomRepository(RoomRepository):
         from src.core.repository import MongoRepository
         self._mongo_repo = MongoRepository("rooms", Room)
     async def find_by_id(self, id: str) -> Optional[Room]:
-        return await self._mongo_repo.find_by_id(id)
+        # soft delete 적용: is_deleted=False 조건 추가
+        return await self._mongo_repo.find_one({"_id": id, "is_deleted": False})
     async def find_one(self, filter_dict):
+        # soft delete 적용: is_deleted=False 조건 추가
+        filter_dict = dict(filter_dict)
+        filter_dict["is_deleted"] = False
         return await self._mongo_repo.find_one(filter_dict)
     async def find_many(self, filter_dict, skip: int = 0, limit: int = 0) -> List[Room]:
+        # soft delete 적용: is_deleted=False 조건 추가
+        filter_dict = dict(filter_dict)
+        filter_dict["is_deleted"] = False
         return await self._mongo_repo.find_many(filter_dict, skip, limit)
     async def create(self, entity: Room) -> str:
         return await self._mongo_repo.create(entity)
     async def update(self, id: str, update_dict) -> bool:
         return await self._mongo_repo.update(id, update_dict)
     async def delete(self, id: str) -> bool:
-        return await self._mongo_repo.delete(id)
+        # soft delete: 실제 삭제 대신 is_deleted, deleted_at update
+        return await self._mongo_repo.update(id, {"is_deleted": True, "deleted_at": datetime.utcnow()})
     async def count(self, filter_dict) -> int:
+        filter_dict = dict(filter_dict)
+        filter_dict["is_deleted"] = False
         return await self._mongo_repo.count(filter_dict)
     async def find_by_title(self, title: str) -> Optional[Room]:
-        return await self._mongo_repo.find_one({"title": title})
+        return await self._mongo_repo.find_one({"title": title, "is_deleted": False})
     async def find_by_host_id(self, host_id: str) -> List[Room]:
-        return await self._mongo_repo.find_many({"host_id": host_id})
+        return await self._mongo_repo.find_many({"host_id": host_id, "is_deleted": False})
 
 class RoomRepositoryFactory:
     _instance: Optional[RoomRepository] = None

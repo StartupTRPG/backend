@@ -15,14 +15,14 @@ from .strategy import (
 logger = logging.getLogger(__name__)
 
 class SocketMessageStrategyFactory:
-    """소켓 메시지 전략 팩토리"""
+    """Socket message strategy factory"""
     
     def __init__(self):
         self._strategies: Dict[SocketEventType, SocketMessageStrategy] = {}
         self._initialize_strategies()
     
     def _initialize_strategies(self):
-        """전략 초기화"""
+        """Initialize strategies"""
         strategies = [
             AuthConnectStrategy(),
             AuthDisconnectStrategy(),
@@ -38,7 +38,7 @@ class SocketMessageStrategyFactory:
             logger.debug(f"Registered strategy for {strategy.get_event_type()}")
     
     def get_strategy(self, event_type: SocketEventType) -> Optional[SocketMessageStrategy]:
-        """이벤트 타입에 따른 전략 반환"""
+        """Get strategy by event type"""
         strategy = self._strategies.get(event_type)
         if not strategy:
             logger.warning(f"No strategy found for event type: {event_type}")
@@ -48,23 +48,23 @@ class SocketMessageStrategyFactory:
         return strategy
     
     def register_strategy(self, event_type: SocketEventType, strategy: SocketMessageStrategy):
-        """새로운 전략 등록"""
+        """Register new strategy"""
         self._strategies[event_type] = strategy
         logger.info(f"Registered new strategy for {event_type}: {strategy.__class__.__name__}")
     
     def get_supported_event_types(self) -> list[SocketEventType]:
-        """지원하는 이벤트 타입 목록 반환"""
+        """Return list of supported event types"""
         return list(self._strategies.keys())
     
     def has_strategy(self, event_type: SocketEventType) -> bool:
-        """특정 이벤트 타입에 대한 전략 존재 여부 확인"""
+        """Check if strategy exists for a specific event type"""
         return event_type in self._strategies
 
 # 싱글톤 팩토리 인스턴스
 _factory_instance = None
 
 def get_strategy_factory() -> SocketMessageStrategyFactory:
-    """전략 팩토리 싱글톤 인스턴스 반환"""
+    """Return strategy factory singleton instance"""
     global _factory_instance
     if _factory_instance is None:
         _factory_instance = SocketMessageStrategyFactory()

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class LogoutResponse(BaseModel):
-    """로그아웃 응답 모델"""
+    """Logout response model"""
     data: dict
     message: str
     success: bool
@@ -12,10 +12,10 @@ class LogoutResponse(BaseModel):
             "example": {
                 "data": {
                     "instructions": {
-                        "client_action": "토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
+                        "client_action": "Delete token from local storage and disconnect Socket.IO connection."
                     }
                 },
-                "message": "로그아웃이 완료되었습니다. 클라이언트에서 토큰을 삭제해주세요.",
+                "message": "Logout completed. Please delete the token from the client.",
                 "success": True
             }
         } 

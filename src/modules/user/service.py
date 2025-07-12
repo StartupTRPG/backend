@@ -13,28 +13,28 @@ class UserService:
         self.user_repository = user_repository or get_user_repository()
     
     def generate_salt(self) -> str:
-        """사용자별 고유 salt 생성"""
-        return secrets.token_hex(32)  # 64자리 hex 문자열
+        """Generate unique salt for each user"""
+        return secrets.token_hex(32)  # 64-character hex string
     
     def hash_password_with_salt(self, password: str, salt: str) -> str:
-        """비밀번호와 salt를 사용한 해싱"""
-        # PBKDF2 사용 (더 안전한 단방향 해싱)
+        """Hash password with salt"""
+        # Use PBKDF2 (more secure one-way hashing)
         hashed = hashlib.pbkdf2_hmac(
-            'sha256',  # 해시 알고리즘
-            password.encode('utf-8'),  # 비밀번호
-            salt.encode('utf-8'),  # salt
-            100000  # 반복 횟수 (더 높을수록 안전)
+            'sha256',  # Hash algorithm
+            password.encode('utf-8'),  # Password
+            salt.encode('utf-8'),  # Salt
+            100000  # Iteration count (higher is more secure)
         )
         return hashed.hex()
     
     def create_password_hash(self, password: str) -> Tuple[str, str]:
-        """비밀번호 해싱 (salt 생성 포함)"""
+        """Hash password (including salt generation)"""
         salt = self.generate_salt()
         hashed_password = self.hash_password_with_salt(password, salt)
         return hashed_password, salt
     
     def verify_password(self, password: str, hashed_password: str, salt: str) -> bool:
-        """비밀번호 검증"""
+        """Verify password"""
         return self.hash_password_with_salt(password, salt) == hashed_password
     
     async def create_user(self, user_data: UserCreateRequest) -> UserResponse:

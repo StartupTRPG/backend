@@ -78,7 +78,14 @@ def create_socketio_app(fastapi_app: FastAPI):
         """채팅 기록 조회 이벤트"""
         await message_handler.handle_message(SocketEventType.GET_CHAT_HISTORY, sid, data)
     
-    return socketio.ASGIApp(sio, fastapi_app)
+    # Socket.IO 앱을 FastAPI에 마운트
+    socket_app = socketio.ASGIApp(sio, fastapi_app)
+    
+    # Socket.IO 엔드포인트 확인을 위한 로그
+    logger.info("Socket.IO 앱이 FastAPI에 마운트되었습니다.")
+    logger.info(f"Socket.IO 엔드포인트: /socket.io/")
+    
+    return socket_app
 
 # 유틸리티 함수들
 async def send_system_message(room_id: str, message: str):

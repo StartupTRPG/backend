@@ -4,7 +4,7 @@ from .room_chat_history_response import RoomChatHistoryResponse
 
 
 class GetChatHistoryResponse(BaseModel):
-    """채팅 기록 조회 응답 모델"""
+    """Chat history retrieval response model"""
     data: RoomChatHistoryResponse
     message: str
     success: bool
@@ -20,7 +20,7 @@ class GetChatHistoryResponse(BaseModel):
                             "room_id": "507f1f77bcf86cd799439011",
                             "user_id": "507f1f77bcf86cd799439013",
                             "username": "testuser",
-                            "content": "안녕하세요!",
+                            "content": "Hello!",
                             "message_type": "text",
                             "created_at": "2024-01-01T00:00:00"
                         }
@@ -33,7 +33,7 @@ class GetChatHistoryResponse(BaseModel):
                         "has_prev": False
                     }
                 },
-                "message": "채팅 기록을 성공적으로 조회했습니다.",
+                "message": "Chat history retrieved successfully.",
                 "success": True
             }
         }

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class LoginResponse(BaseModel):
-    """로그인 응답 모델"""
+    """Login response model"""
     data: dict
     message: str
     success: bool
@@ -15,7 +15,7 @@ class LoginResponse(BaseModel):
                     "token_type": "bearer",
                     "expires_in": 3600
                 },
-                "message": "로그인이 성공했습니다.",
+                "message": "Login successful.",
                 "success": True
             }
         } 

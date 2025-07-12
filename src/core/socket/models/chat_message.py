@@ -1,7 +1,7 @@
 from .base_socket_message import BaseSocketMessage
 
 class ChatMessage(BaseSocketMessage):
-    """채팅 메시지"""
+    """Chat message"""
     room_id: str
     user_id: str
     username: str

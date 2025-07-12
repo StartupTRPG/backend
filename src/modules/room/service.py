@@ -17,11 +17,11 @@ class RoomService:
         # self.player_repository = ... (추후 분리)
     
     def _hash_password(self, password: str) -> str:
-        """방 비밀번호 해싱"""
+        """Hash room password"""
         return hashlib.sha256(password.encode()).hexdigest()
     
     def _verify_password(self, password: str, hashed_password: str) -> bool:
-        """방 비밀번호 검증"""
+        """Verify room password"""
         return self._hash_password(password) == hashed_password
     
     def verify_room_password(self, room: RoomResponse, password: str) -> bool:
@@ -29,7 +29,7 @@ class RoomService:
             return True
         if not password:
             return False
-        return True  # 실제 검증은 add_player_to_room에서 수행
+        return True  # Actual verification performed in add_player_to_room
     
     async def create_room(self, room_data: RoomCreateRequest, host_user: UserResponse) -> RoomResponse:
         try:
@@ -39,7 +39,7 @@ class RoomService:
             if not (4 <= room_data.max_players <= 6):
                 raise ValueError("방 최대 인원은 4~6명이어야 합니다.")
             
-            from .models import Room, RoomPlayer, PlayerRole
+            from .models import Room, RoomPlayer
             now = datetime.utcnow()
             
             # 호스트 플레이어 생성
@@ -211,7 +211,7 @@ class RoomService:
             if room.get_player(user_id):
                 return False
             
-            from .models import RoomPlayer, PlayerRole
+            from .models import RoomPlayer
             
             # 새 플레이어 생성
             new_player = RoomPlayer(
@@ -275,5 +275,19 @@ class RoomService:
         except Exception as e:
             logger.error(f"Error getting players from room '{room_id}': {str(e)}")
             return []
+        
+    async def end_game(self, room_id: str, user_id: str) -> bool:
+         # 게임 종료 로직 구현
+         # 예: 방 상태를 FINISHED로 변경
+         room = await self.room_repository.find_by_id(room_id)
+         if not room:
+             return False
+         if room.host_id != user_id:
+             raise ValueError("Only host can end the game.")
+         success = await self.room_repository.update(room_id, {
+             "status": RoomStatus.FINISHED,
+             "updated_at": datetime.utcnow()
+         })
+         return success
 
 room_service = RoomService() 

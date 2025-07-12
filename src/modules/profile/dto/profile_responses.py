@@ -4,7 +4,7 @@ from ..models import UserProfileResponse, UserProfilePublicResponse
 
 
 class CreateProfileResponse(BaseModel):
-    """프로필 생성 응답 모델"""
+    """Profile creation response model"""
     data: UserProfileResponse
     message: str
     success: bool
@@ -15,13 +15,13 @@ class CreateProfileResponse(BaseModel):
                 "data": {
                     "id": "507f1f77bcf86cd799439011",
                     "user_id": "507f1f77bcf86cd799439012",
-                    "display_name": "테스트유저",
-                    "bio": "안녕하세요! 테스트유저입니다.",
+                    "display_name": "TestUser",
+                    "bio": "Hello! I'm TestUser.",
                     "user_level": 1,
                     "created_at": "2024-01-01T00:00:00",
                     "updated_at": "2024-01-01T00:00:00"
                 },
-                "message": "프로필이 성공적으로 생성되었습니다.",
+                "message": "Profile created successfully.",
                 "success": True
             }
         }

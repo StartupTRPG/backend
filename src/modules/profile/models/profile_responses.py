@@ -13,6 +13,8 @@ class UserProfileResponse(BaseModel):
     user_level: int
     created_at: datetime
     updated_at: datetime
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -27,6 +29,8 @@ class UserProfilePublicResponse(BaseModel):
     avatar_url: Optional[str]
     user_level: int
     created_at: datetime
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
@@ -42,6 +46,8 @@ class UserProfileDocument(BaseModel):
     user_level: int
     created_at: datetime
     updated_at: datetime
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True 

@@ -10,24 +10,24 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 @router.get("/room/{room_id}/history", response_model=GetChatHistoryResponse)
 async def get_room_chat_history(
     room_id: str,
-    page: int = Query(1, ge=1, description="페이지 번호"),
-    limit: int = Query(50, ge=1, le=100, description="페이지당 메시지 수"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=100, description="Messages per page"),
     current_user: UserResponse = Depends(get_current_user)
 ):
-    """방의 채팅 기록 조회"""
+    """Get room chat history"""
     try:
-        # TODO: 사용자가 해당 방에 접근 권한이 있는지 확인
-        # 현재는 로그인한 사용자라면 모든 방의 채팅 기록 조회 가능
+        # TODO: Check if user has access to the room
+        # Currently, any logged-in user can view chat history of all rooms
         
         chat_history = await chat_service.get_room_messages(room_id, page, limit)
         return GetChatHistoryResponse(
             data=chat_history,
-            message="채팅 기록을 성공적으로 조회했습니다.",
+            message="Chat history retrieved successfully.",
             success=True
         )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"채팅 기록 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while retrieving chat history: {str(e)}")
 
 @router.delete("/room/{room_id}/history", response_model=DeleteChatHistoryResponse)
 async def delete_room_chat_history(

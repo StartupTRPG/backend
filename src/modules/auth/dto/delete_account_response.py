@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class DeleteAccountResponse(BaseModel):
-    """계정 삭제 응답 모델"""
+    """Account deletion response model"""
     data: dict
     message: str
     success: bool
@@ -12,10 +12,10 @@ class DeleteAccountResponse(BaseModel):
             "example": {
                 "data": {
                     "instructions": {
-                        "client_action": "모든 토큰을 삭제하고 로그인 페이지로 이동하세요."
+                        "client_action": "Delete all tokens and navigate to login page."
                     }
                 },
-                "message": "계정이 성공적으로 삭제되었습니다.",
+                "message": "Account deleted successfully.",
                 "success": True
             }
         } 

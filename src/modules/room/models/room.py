@@ -19,6 +19,8 @@ class Room(BaseModel):
     updated_at: datetime
     game_settings: dict = {}
     players: List[RoomPlayer] = []  # 방에 있는 플레이어 목록
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
     
     @property
     def has_password(self) -> bool:

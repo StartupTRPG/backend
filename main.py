@@ -24,9 +24,9 @@ from src.modules.chat.router import router as chat_router
 from src.modules.admin.router import router as admin_router
 from src.core.socket import create_socketio_app
 
-# 로깅 설정
+# Logging configuration
 logging.basicConfig(
-    level=logging.DEBUG,  # DEBUG 레벨로 설정하여 모든 로그 출력
+    level=logging.DEBUG,  # Set to DEBUG level to output all logs
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
@@ -37,54 +37,38 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """애플리케이션 라이프사이클 관리"""
-    # 시작 시 실행
-    logger.info("애플리케이션을 시작합니다...")
+    """Application lifecycle management"""
+    # Execute on startup
+    logger.info("Starting application...")
     try:
         await connect_to_mongo()
-        logger.info("MongoDB 연결이 완료되었습니다.")
+        logger.info("MongoDB connection completed.")
     except Exception as e:
-        logger.error(f"MongoDB 연결 실패: {e}")
+        logger.error(f"MongoDB connection failed: {e}")
         raise
-    
-    # 백그라운드 태스크 시작
-    import asyncio
-    from src.core.session_manager import session_manager
-    
-    async def cleanup_sessions_task():
-        """주기적으로 비활성 세션 정리"""
-        while True:
-            try:
-                await asyncio.sleep(300)  # 5분마다 실행
-                await session_manager.cleanup_inactive_sessions()
-            except Exception as e:
-                logger.error(f"Session cleanup task error: {str(e)}")
-    
-    cleanup_task = asyncio.create_task(cleanup_sessions_task())
     
     yield
     
-    # 종료 시 실행
-    logger.info("애플리케이션을 종료합니다...")
-    cleanup_task.cancel()
+    # Execute on shutdown
+    logger.info("Shutting down application...")
     await close_mongo_connection()
-    logger.info("MongoDB 연결이 종료되었습니다.")
+    logger.info("MongoDB connection closed.")
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
-    # 상세한 에러 정보 제공
+    # Provide detailed error information
     openapi_url="/openapi.json" if settings.DEBUG else None,
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# 전역 예외 핸들러 추가
+# Add global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """전역 예외 핸들러 - 모든 예외를 상세히 로깅"""
+    """Global exception handler - detailed logging of all exceptions"""
     logger.error("=" * 80)
     logger.error("GLOBAL EXCEPTION HANDLER")
     logger.error("=" * 80)
@@ -94,17 +78,17 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Request Method: {request.method}")
     logger.error(f"Request Headers: {dict(request.headers)}")
     
-    # 요청 본문 로깅 (가능한 경우)
+    # Log request body (if possible)
     try:
         body = await request.body()
         if body:
-            # 바이트를 문자열로 변환하여 로깅
+            # Convert bytes to string for logging
             body_str = body.decode('utf-8', errors='replace')
             logger.error(f"Request Body: {body_str}")
     except Exception as e:
         logger.error(f"Could not read request body: {e}")
     
-    # 상세한 traceback 로깅
+    # Detailed traceback logging
     logger.error("Full Traceback:")
     logger.error(traceback.format_exc())
     logger.error("=" * 80)

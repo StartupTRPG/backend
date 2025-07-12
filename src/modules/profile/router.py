@@ -11,28 +11,25 @@ from .dto import (
     GetUserProfileResponse, SearchProfilesResponse
 )
 
-router = APIRouter(prefix="/profile", tags=["사용자 프로필"])
+router = APIRouter(prefix="/profile", tags=["User Profile"])
 security = HTTPBearer()
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UserResponse:
-    """현재 사용자 정보를 가져오는 의존성"""
+    """Dependency to get current user info"""
     try:
         payload = jwt_manager.verify_token(credentials.credentials)
         if not payload:
-            raise HTTPException(status_code=401, detail="유효하지 않은 액세스 토큰입니다.")
-        
+            raise HTTPException(status_code=401, detail="Invalid access token.")
         if payload.get("type") != "access":
-            raise HTTPException(status_code=401, detail="잘못된 토큰 타입입니다.")
-        
+            raise HTTPException(status_code=401, detail="Invalid token type.")
         user = await user_service.get_user_by_id(payload["user_id"])
         if not user:
-            raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다.")
-        
+            raise HTTPException(status_code=401, detail="User not found.")
         return user
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail="사용자 정보 조회 중 오류가 발생했습니다.")
+        raise HTTPException(status_code=500, detail="Error occurred while retrieving user info.")
 
 @router.post("", response_model=CreateProfileResponse)
 async def create_profile(
@@ -44,7 +41,7 @@ async def create_profile(
         profile = await user_profile_service.create_profile(current_user, profile_data)
         return CreateProfileResponse(
             data=profile,
-            message="프로필이 성공적으로 생성되었습니다.",
+            message="Profile created successfully.",
             success=True
         )
     except ValueError as e:
@@ -62,17 +59,17 @@ async def get_my_profile(
         if not profile:
             raise HTTPException(
                 status_code=404, 
-                detail="프로필이 없습니다. POST /profile로 프로필을 먼저 생성해주세요."
+                detail="Profile not found. Please create a profile first using POST /profile."
             )
         return GetProfileResponse(
             data=profile,
-            message="프로필을 성공적으로 조회했습니다.",
+            message="Profile retrieved successfully.",
             success=True
         )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"프로필 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while retrieving profile: {str(e)}")
 
 @router.put("/me", response_model=UpdateProfileResponse)
 async def update_my_profile(
@@ -85,11 +82,11 @@ async def update_my_profile(
         if not profile:
             raise HTTPException(
                 status_code=404, 
-                detail="프로필이 없습니다. POST /profile로 프로필을 먼저 생성해주세요."
+                detail="Profile not found. Please create a profile first using POST /profile."
             )
         return UpdateProfileResponse(
             data=profile,
-            message="프로필이 성공적으로 수정되었습니다.",
+            message="Profile updated successfully.",
             success=True
         )
     except ValueError as e:
@@ -106,21 +103,21 @@ async def get_user_profile(
     try:
         profile = await user_profile_service.get_public_profile(user_id)
         if not profile:
-            raise HTTPException(status_code=404, detail="공개 프로필을 찾을 수 없습니다.")
+            raise HTTPException(status_code=404, detail="Public profile not found.")
         return GetUserProfileResponse(
             data=profile,
-            message="사용자 프로필을 성공적으로 조회했습니다.",
+            message="User profile retrieved successfully.",
             success=True
         )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"프로필 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while retrieving profile: {str(e)}")
 
 @router.get("/search", response_model=SearchProfilesResponse)
 async def search_profiles(
-    q: str = Query(..., min_length=2, description="검색어"),
-    limit: int = Query(20, ge=1, le=50, description="결과 수 제한"),
+    q: str = Query(..., min_length=2, description="Search term"),
+    limit: int = Query(20, ge=1, le=50, description="Limit results"),
     current_user: UserResponse = Depends(get_current_user)
 ):
     """프로필 검색 (사용자 찾기) - 인증된 유저만"""
@@ -128,8 +125,8 @@ async def search_profiles(
         profiles = await user_profile_service.search_profiles(q, limit)
         return SearchProfilesResponse(
             data=profiles,
-            message=f"'{q}' 검색 결과를 성공적으로 조회했습니다.",
+            message=f"'{q}' search results retrieved successfully.",
             success=True
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"프로필 검색 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while searching profiles: {str(e)}")
