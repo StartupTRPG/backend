@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from bson import ObjectId
 from src.core.jwt_utils import jwt_manager
 from .dto import UserCreateRequest, UserLoginRequest, UserResponse
-from src.modules.auth.dto import TokenResponse
+from src.modules.auth.dto import TokenData
 from .repository import get_user_repository, UserRepository
 
 class UserService:
@@ -120,11 +120,11 @@ class UserService:
             last_login=user.last_login
         )
     
-    def create_tokens(self, user: UserResponse) -> TokenResponse:
+    def create_tokens(self, user: UserResponse) -> TokenData:
         """토큰 쌍 생성"""
         from src.core.jwt_utils import jwt_manager
         token_pair = jwt_manager.create_token_pair(user.id, user.username)
-        return TokenResponse(**token_pair.model_dump(), user=user)
+        return TokenData(**token_pair.model_dump(), user=user)
     
     async def delete_user(self, user_id: str) -> bool:
         """사용자 계정 삭제 (프로필도 함께 삭제)"""

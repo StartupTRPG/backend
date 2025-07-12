@@ -4,6 +4,7 @@ from typing import List, Optional
 from src.modules.user.dto import UserResponse
 from src.modules.user.service import user_service
 from src.core.jwt_utils import jwt_manager
+from src.core.response import ApiResponse
 from .service import room_service
 
 from .dto import (
@@ -35,7 +36,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception as e:
         raise HTTPException(status_code=500, detail="사용자 정보 조회 중 오류가 발생했습니다.")
 
-@router.post("", response_model=RoomResponse)
+@router.post("", response_model=ApiResponse[RoomResponse])
 async def create_room(
     room_data: RoomCreateRequest,
     current_user: UserResponse = Depends(get_current_user)
@@ -43,13 +44,17 @@ async def create_room(
     """방 생성"""
     try:
         room = await room_service.create_room(room_data, current_user)
-        return room
+        return ApiResponse(
+            data=room,
+            message="방이 성공적으로 생성되었습니다.",
+            success=True
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"방 생성 중 오류가 발생했습니다: {str(e)}")
 
-@router.get("", response_model=List[RoomListResponse])
+@router.get("", response_model=ApiResponse[List[RoomListResponse]])
 async def list_rooms(
     status: Optional[RoomStatus] = Query(None, description="방 상태 필터"),
     visibility: Optional[RoomVisibility] = Query(None, description="방 공개 설정 필터"),
@@ -66,29 +71,41 @@ async def list_rooms(
             page=page,
             limit=limit
         )
-        return rooms
+        return ApiResponse(
+            data=rooms,
+            message="방 목록을 성공적으로 조회했습니다.",
+            success=True
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"방 목록 조회 중 오류가 발생했습니다: {str(e)}")
 
-@router.get("/my", response_model=List[RoomListResponse])
+@router.get("/my", response_model=ApiResponse[List[RoomListResponse]])
 async def get_my_rooms(
     current_user: UserResponse = Depends(get_current_user)
 ):
     """내가 참가한 방 목록 조회"""
     try:
         rooms = await room_service.get_user_rooms(current_user.id)
-        return rooms
+        return ApiResponse(
+            data=rooms,
+            message="내 방 목록을 성공적으로 조회했습니다.",
+            success=True
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"내 방 목록 조회 중 오류가 발생했습니다: {str(e)}")
 
-@router.get("/{room_id}", response_model=RoomResponse)
+@router.get("/{room_id}", response_model=ApiResponse[RoomResponse])
 async def get_room(room_id: str):
     """방 정보 조회"""
     try:
         room = await room_service.get_room(room_id)
         if not room:
             raise HTTPException(status_code=404, detail="방을 찾을 수 없습니다.")
-        return room
+        return ApiResponse(
+            data=room,
+            message="방 정보를 성공적으로 조회했습니다.",
+            success=True
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -98,7 +115,7 @@ async def get_room(room_id: str):
 # POST /rooms/{room_id}/join -> socket.emit('join_room')
 # POST /rooms/{room_id}/leave -> socket.emit('leave_room')
 
-@router.put("/{room_id}", response_model=RoomResponse)
+@router.put("/{room_id}", response_model=ApiResponse[RoomResponse])
 async def update_room(
     room_id: str,
     room_data: RoomUpdateRequest,
@@ -109,13 +126,17 @@ async def update_room(
         room = await room_service.update_room(room_id, room_data, current_user.id)
         if not room:
             raise HTTPException(status_code=404, detail="방을 찾을 수 없습니다.")
-        return room
+        return ApiResponse(
+            data=room,
+            message="방 설정이 성공적으로 변경되었습니다.",
+            success=True
+        )
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"방 설정 변경 중 오류가 발생했습니다: {str(e)}")
 
-@router.post("/{room_id}/start")
+@router.post("/{room_id}/start", response_model=ApiResponse[dict])
 async def start_game(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
@@ -124,7 +145,11 @@ async def start_game(
     try:
         success = await room_service.start_game(room_id, current_user.id)
         if success:
-            return {"message": "게임이 시작되었습니다."}
+            return ApiResponse(
+                data={},
+                message="게임이 시작되었습니다.",
+                success=True
+            )
         else:
             raise HTTPException(status_code=400, detail="게임 시작에 실패했습니다.")
     except ValueError as e:
@@ -132,7 +157,7 @@ async def start_game(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"게임 시작 중 오류가 발생했습니다: {str(e)}")
 
-@router.post("/{room_id}/end")
+@router.post("/{room_id}/end", response_model=ApiResponse[dict])
 async def end_game(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
@@ -141,7 +166,11 @@ async def end_game(
     try:
         success = await room_service.end_game(room_id, current_user.id)
         if success:
-            return {"message": "게임이 종료되었습니다."}
+            return ApiResponse(
+                data={},
+                message="게임이 종료되었습니다.",
+                success=True
+            )
         else:
             raise HTTPException(status_code=400, detail="게임 종료에 실패했습니다.")
     except ValueError as e:
@@ -149,7 +178,7 @@ async def end_game(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"게임 종료 중 오류가 발생했습니다: {str(e)}")
 
-@router.delete("/{room_id}")
+@router.delete("/{room_id}", response_model=ApiResponse[dict])
 async def delete_room(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
@@ -159,7 +188,11 @@ async def delete_room(
         # 방장인지 확인하고 모든 플레이어를 내보낸 후 방 삭제
         success = await room_service.leave_room(room_id, current_user.id)
         if success:
-            return {"message": "방이 삭제되었습니다."}
+            return ApiResponse(
+                data={},
+                message="방이 삭제되었습니다.",
+                success=True
+            )
         else:
             raise HTTPException(status_code=400, detail="방 삭제에 실패했습니다.")
     except ValueError as e:

@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     WEB_CLIENT_SECRET: str
     
     # CORS 설정 (웹 클라이언트용)
-    FRONTEND_URL: str
-    ALLOWED_ORIGINS: list[str]
+    FRONTEND_URL: str = "http://localhost:5173"
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"]
     
     # 로깅 설정
     LOG_LEVEL: str
