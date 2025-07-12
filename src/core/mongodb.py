@@ -77,7 +77,7 @@ class MongoManager:
         if self.database is None:
             raise RuntimeError("데이터베이스가 연결되지 않았습니다. connect_to_mongo()를 먼저 호출하세요.")
         return self.database
-    ㅣ
+
     def get_collection(self, collection_name: str):
         """컬렉션 반환"""
         database = self.get_database()
