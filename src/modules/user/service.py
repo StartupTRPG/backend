@@ -148,36 +148,7 @@ class UserService:
         except Exception:
             return False
     
-    async def update_user_role(self, user_id: str, role: str, is_admin: bool = False) -> bool:
-        """사용자 역할 업데이트 (관리자용)"""
-        try:
-            success = await self.user_repository.update(user_id, {
-                'role': role,
-                'is_admin': is_admin,
-                'updated_at': datetime.utcnow()
-            })
-            return success
-        except Exception:
-            return False
-    
-    async def get_user_by_id_with_admin_info(self, user_id: str) -> Optional[UserResponse]:
-        """사용자 ID로 조회 (관리자 정보 포함)"""
-        user = await self.user_repository.find_by_id(user_id)
-        if not user:
-            return None
-        
-        # UserResponse로 변환 (관리자 정보 포함)
-        return UserResponse(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            nickname=user.nickname,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-            last_login=user.last_login,
-            is_admin=getattr(user, 'is_admin', False),
-            role=getattr(user, 'role', 'user')
-        )
+
 
 # 전역 서비스 인스턴스 (의존성 주입을 위해 Repository를 주입)
 user_service = UserService() 

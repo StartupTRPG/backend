@@ -11,8 +11,6 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
-    is_admin: bool = False
-    role: str = "user"
     
     class Config:
         from_attributes = True 

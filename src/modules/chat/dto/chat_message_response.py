@@ -10,8 +10,9 @@ class ChatMessageResponse(BaseModel):
     username: str
     display_name: str
     message_type: ChatType
-    message: str  # 복호화된 내용
+    message: str  # Decrypted content
     timestamp: datetime
+    chat_category: str = "general"  # "lobby", "game", "general"
     encrypted: bool = False
     
     class Config:

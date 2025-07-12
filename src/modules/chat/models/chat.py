@@ -12,6 +12,7 @@ class ChatMessage(BaseModel):
     message_type: ChatType
     content: str  # Encrypted content is stored
     timestamp: datetime
+    chat_category: str = "general"  # "lobby", "game"
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None
     

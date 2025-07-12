@@ -36,21 +36,9 @@ class MongoUserRepository(UserRepository):
         self._mongo_repo = MongoRepository("users", UserDocument)
     
     async def find_by_id(self, id: str) -> Optional[User]:
-        user_doc = await self._mongo_repo.find_one({"_id": id, "is_deleted": False})
-        if user_doc:
-            return User(
-                id=user_doc.id,
-                username=user_doc.username,
-                email=user_doc.email,
-                nickname=user_doc.nickname,
-                password=user_doc.password,
-                salt=user_doc.salt,
-                created_at=user_doc.created_at,
-                updated_at=user_doc.updated_at,
-                last_login=user_doc.last_login,
-                is_deleted=getattr(user_doc, 'is_deleted', False),
-                deleted_at=getattr(user_doc, 'deleted_at', None)
-            )
+        user_doc = await self._mongo_repo.find_by_id(id)
+        if user_doc and not getattr(user_doc, 'is_deleted', False):
+            return user_doc
         return None
     
     async def find_one(self, filter_dict):

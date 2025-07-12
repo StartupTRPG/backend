@@ -13,8 +13,6 @@ class User(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
-    is_admin: bool = False  # 관리자 권한 여부
-    role: str = "user"  # 사용자 역할 (user, admin, moderator 등)
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None
     

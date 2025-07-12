@@ -54,8 +54,11 @@ class AuthService:
             return UserResponse(
                 id=user.id,
                 username=user.username,
+                email=user.email,
+                nickname=user.nickname,
                 created_at=user.created_at,
-                updated_at=user.updated_at
+                updated_at=user.updated_at,
+                last_login=user.last_login
             )
             
         except ValueError:
@@ -85,8 +88,11 @@ class AuthService:
             return UserResponse(
                 id=user.id,
                 username=user.username,
+                email=user.email,
+                nickname=user.nickname,
                 created_at=user.created_at,
-                updated_at=user.updated_at
+                updated_at=user.updated_at,
+                last_login=user.last_login
             )
             
         except Exception as e:
