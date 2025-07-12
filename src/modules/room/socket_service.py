@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from src.core.socket.models import RoomMessage, SocketEventType
 from src.modules.room.service import room_service
+from src.modules.room.enums import PlayerRole
 
 logger = logging.getLogger(__name__)
 
@@ -146,19 +147,39 @@ class RoomSocketService:
             user_id = session['user_id']
             username = session['username']
             
-            # 데이터베이스에서 플레이어 제거
+            # 데이터베이스에서 플레이어 제거 (호스트인 경우 방 삭제)
+            is_host = False
+            # Room 모델을 직접 조회하여 get_player 메서드 사용
+            from src.modules.room.repository import get_room_repository
+            room_repo = get_room_repository()
+            room = await room_repo.find_by_id(room_id)
+            if room:
+                player = room.get_player(user_id)
+                if player and player.role == PlayerRole.HOST:
+                    is_host = True
+            
             await room_service.remove_player_from_room(room_id, user_id)
+            
+            # 호스트가 나가는 경우 방 삭제 알림
+            if is_host:
+                await sio.emit('room_deleted', {
+                    'room_id': room_id,
+                    'message': f'Room has been deleted by host {username}.',
+                    'timestamp': datetime.utcnow().isoformat()
+                }, room=room_id)
+            else:
+                # 일반 사용자 나가기
+                await sio.emit('leave_room', {
+                    'room_id': room_id,
+                    'user_id': user_id,
+                    'username': username,
+                    'display_name': session.get('display_name', username),
+                    'message': f'{username} has left.',
+                    'timestamp': datetime.utcnow().isoformat()
+                }, room=room_id)
             
             # Socket.IO 방에서 나가기
             await sio.leave_room(sid, room_id)
-            await sio.emit('leave_room', {
-                'room_id': room_id,
-                'user_id': user_id,
-                'username': username,
-                'display_name': session.get('display_name', username),
-                'message': f'{username} has left.',
-                'timestamp': datetime.utcnow().isoformat()
-            }, room=room_id)
             
             # 세션 업데이트 (토큰에서 방 정보 제거)
             session['current_room'] = None

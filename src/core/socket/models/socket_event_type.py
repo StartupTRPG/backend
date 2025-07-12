@@ -10,6 +10,7 @@ class SocketEventType(str, Enum):
     # 방 관련
     JOIN_ROOM = "join_room"
     LEAVE_ROOM = "leave_room"
+    ROOM_DELETED = "room_deleted"
     
     # 채팅 관련
     LOBBY_MESSAGE = "lobby_message"

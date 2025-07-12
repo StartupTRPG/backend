@@ -1,9 +1,24 @@
 from pydantic import BaseModel
+from typing import Dict, Any
+
+
+class LogoutData(BaseModel):
+    """로그아웃 응답 데이터"""
+    instructions: Dict[str, Any]
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "instructions": {
+                    "client_action": "액세스 토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
+                }
+            }
+        }
 
 
 class LogoutResponse(BaseModel):
     """Logout response model"""
-    data: dict
+    data: LogoutData
     message: str
     success: bool
     
@@ -12,10 +27,10 @@ class LogoutResponse(BaseModel):
             "example": {
                 "data": {
                     "instructions": {
-                        "client_action": "Delete token from local storage and disconnect Socket.IO connection."
+                        "client_action": "액세스 토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
                     }
                 },
-                "message": "Logout completed. Please delete the token from the client.",
+                "message": "Logout completed successfully.",
                 "success": True
             }
         } 

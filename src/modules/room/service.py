@@ -219,12 +219,17 @@ class RoomService:
             if not room:
                 return False
             
-            # 호스트는 제거할 수 없음
             player = room.get_player(user_id)
-            if not player or player.role == PlayerRole.HOST:
+            if not player:
                 return False
             
-            # 플레이어 제거
+            # 호스트가 나가는 경우 방 삭제
+            if player.role == PlayerRole.HOST:
+                logger.info(f"Host {player.username} is leaving room {room_id}. Deleting room.")
+                success = await self.room_repository.delete(room_id)
+                return success
+            
+            # 일반 플레이어 제거
             if room.remove_player(user_id):
                 # 데이터베이스 업데이트
                 success = await self.room_repository.update(room_id, {
@@ -252,6 +257,29 @@ class RoomService:
             logger.error(f"Error getting players from room '{room_id}': {str(e)}")
             return []
         
+    async def get_user_rooms(self, user_id: str) -> List[RoomListResponse]:
+        """사용자가 참가한 방 목록 조회"""
+        try:
+            # 사용자가 플레이어로 참가한 방들을 조회
+            filter_query = {
+                "players.user_id": user_id
+            }
+            rooms = await self.room_repository.find_many(filter_query, 0, 100)
+            
+            room_list_responses = []
+            for room in rooms:
+                room_data = room.model_dump()
+                room_data.update({
+                    "current_players": room.current_players
+                })
+                room_list_responses.append(RoomListResponse(**room_data))
+            
+            return room_list_responses
+            
+        except Exception as e:
+            logger.error(f"Error getting user rooms for user '{user_id}': {str(e)}")
+            return []
+    
     async def end_game(self, room_id: str, user_id: str) -> bool:
          # 게임 종료 로직 구현
          # 예: 방 상태를 FINISHED로 변경

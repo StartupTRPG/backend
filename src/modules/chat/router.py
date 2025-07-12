@@ -39,10 +39,12 @@ async def delete_room_chat_history(
         # TODO: 관리자 권한 확인 또는 방 호스트 권한 확인
         
         deleted_count = await chat_service.delete_room_messages(room_id)
+        from .dto import DeleteChatHistoryData
         return DeleteChatHistoryResponse(
-            data={
-                "deleted_count": deleted_count
-            },
+            data=DeleteChatHistoryData(
+                deleted_count=deleted_count,
+                room_id=room_id
+            ),
             message=f"방 {room_id}의 채팅 기록이 삭제되었습니다.",
             success=True
         )

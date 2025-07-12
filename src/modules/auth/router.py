@@ -72,14 +72,15 @@ async def login(login_data: UserLoginRequest, response: Response):
             max_age=7 * 24 * 60 * 60  # 7일
         )
         
-        data = {
-            "access_token": tokens.access_token,
-            "token_type": tokens.token_type,
-            "expires_in": tokens.expires_in
-        }
+        from .dto.login_response import LoginData
+        login_data = LoginData(
+            access_token=tokens.access_token,
+            token_type=tokens.token_type,
+            expires_in=tokens.expires_in
+        )
         
         return LoginResponse(
-            data=data,
+            data=login_data,
             message="로그인이 성공했습니다.",
             success=True
         )
@@ -121,14 +122,15 @@ async def refresh_token(request: Request, response: Response):
             max_age=7 * 24 * 60 * 60  # 7일
         )
         
-        data = {
-            "access_token": tokens.access_token,
-            "token_type": tokens.token_type,
-            "expires_in": tokens.expires_in
-        }
+        from .dto.refresh_response import RefreshData
+        refresh_data = RefreshData(
+            access_token=tokens.access_token,
+            token_type=tokens.token_type,
+            expires_in=tokens.expires_in
+        )
         
         return RefreshResponse(
-            data=data,
+            data=refresh_data,
             message="토큰이 성공적으로 갱신되었습니다.",
             success=True
         )
@@ -153,8 +155,16 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if not user:
             raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다.")
         
+        from .dto.user_response import UserData
+        user_data = UserData(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
         return UserResponse(
-            data=user.dict(),
+            data=user_data,
             message="사용자 정보를 성공적으로 조회했습니다.",
             success=True
         )
@@ -176,12 +186,14 @@ async def logout(response: Response):
             samesite="lax"
         )
         
+        from .dto.logout_response import LogoutData
+        logout_data = LogoutData(
+            instructions={
+                "client_action": "액세스 토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
+            }
+        )
         return LogoutResponse(
-            data={
-                "instructions": {
-                    "client_action": "액세스 토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
-                }
-            },
+            data=logout_data,
             message="로그아웃이 완료되었습니다. 클라이언트에서 액세스 토큰을 삭제해주세요.",
             success=True
         )
@@ -208,12 +220,15 @@ async def delete_account(credentials: HTTPAuthorizationCredentials = Depends(sec
         if not success:
             raise HTTPException(status_code=400, detail="계정 삭제에 실패했습니다.")
         
+        from datetime import datetime
+        from .dto.delete_account_response import DeleteAccountData
+        delete_data = DeleteAccountData(
+            user_id=user_id,
+            username=user.username if user else "unknown",
+            deleted_at=datetime.utcnow().isoformat()
+        )
         return DeleteAccountResponse(
-            data={
-                "instructions": {
-                    "client_action": "모든 토큰을 삭제하고 로그인 페이지로 이동하세요."
-                }
-            },
+            data=delete_data,
             message="계정이 성공적으로 삭제되었습니다.",
             success=True
         )

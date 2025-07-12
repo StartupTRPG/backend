@@ -5,11 +5,12 @@ from src.modules.user.dto import UserResponse
 from src.modules.user.service import user_service
 from src.core.jwt_utils import jwt_manager
 from src.core.response import ApiResponse
+
 from .service import room_service
 
 from .dto import (
     RoomCreateRequest, RoomUpdateRequest, RoomResponse, 
-    RoomListResponse
+    RoomListResponse, RoomOperationResponse
 )
 from .enums import RoomStatus, RoomVisibility
 
@@ -140,7 +141,7 @@ async def update_room(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"방 설정 변경 중 오류가 발생했습니다: {str(e)}")
 
-@router.post("/{room_id}/start", response_model=ApiResponse[dict])
+@router.post("/{room_id}/start", response_model=ApiResponse[RoomOperationResponse])
 async def start_game(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
@@ -149,8 +150,19 @@ async def start_game(
     try:
         success = await room_service.start_game(room_id, current_user.id)
         if success:
+            from datetime import datetime
+            from .dto import RoomOperationData
+            operation_data = RoomOperationData(
+                room_id=room_id,
+                operation="start_game",
+                timestamp=datetime.utcnow().isoformat()
+            )
             return ApiResponse(
-                data={},
+                data=RoomOperationResponse(
+                    data=operation_data,
+                    message="게임이 시작되었습니다.",
+                    success=True
+                ),
                 message="게임이 시작되었습니다.",
                 success=True
             )
@@ -161,7 +173,7 @@ async def start_game(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"게임 시작 중 오류가 발생했습니다: {str(e)}")
 
-@router.post("/{room_id}/end", response_model=ApiResponse[dict])
+@router.post("/{room_id}/end", response_model=ApiResponse[RoomOperationResponse])
 async def end_game(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
@@ -170,8 +182,19 @@ async def end_game(
     try:
         success = await room_service.end_game(room_id, current_user.id)
         if success:
+            from datetime import datetime
+            from .dto import RoomOperationData
+            operation_data = RoomOperationData(
+                room_id=room_id,
+                operation="end_game",
+                timestamp=datetime.utcnow().isoformat()
+            )
             return ApiResponse(
-                data={},
+                data=RoomOperationResponse(
+                    data=operation_data,
+                    message="게임이 종료되었습니다.",
+                    success=True
+                ),
                 message="게임이 종료되었습니다.",
                 success=True
             )
@@ -182,7 +205,7 @@ async def end_game(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"게임 종료 중 오류가 발생했습니다: {str(e)}")
 
-@router.delete("/{room_id}", response_model=ApiResponse[dict])
+@router.delete("/{room_id}", response_model=ApiResponse[RoomOperationResponse])
 async def delete_room(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
@@ -190,10 +213,21 @@ async def delete_room(
     """방 삭제 (호스트만)"""
     try:
         # 방장인지 확인하고 모든 플레이어를 내보낸 후 방 삭제
-        success = await room_service.leave_room(room_id, current_user.id)
+        success = await room_service.remove_player_from_room(room_id, current_user.id)
         if success:
+            from datetime import datetime
+            from .dto import RoomOperationData
+            operation_data = RoomOperationData(
+                room_id=room_id,
+                operation="delete_room",
+                timestamp=datetime.utcnow().isoformat()
+            )
             return ApiResponse(
-                data={},
+                data=RoomOperationResponse(
+                    data=operation_data,
+                    message="방이 삭제되었습니다.",
+                    success=True
+                ),
                 message="방이 삭제되었습니다.",
                 success=True
             )
