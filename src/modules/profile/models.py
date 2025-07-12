@@ -15,7 +15,7 @@ class UserProfileUpdate(BaseModel):
     user_level: Optional[int] = Field(None, ge=1, le=100, description="사용자 레벨 (1-100)")
 
 class UserProfileResponse(BaseModel):
-    id: str
+    id: Optional[str] = None
     user_id: str
     username: str
     display_name: str
@@ -37,6 +37,20 @@ class UserProfilePublicResponse(BaseModel):
     avatar_url: Optional[str]
     user_level: int
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class UserProfileDocument(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    username: str
+    display_name: str
+    bio: Optional[str]
+    avatar_url: Optional[str]
+    user_level: int
+    created_at: datetime
+    updated_at: datetime
     
     class Config:
         from_attributes = True 

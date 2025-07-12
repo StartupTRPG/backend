@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional
 from src.core.socket.interfaces import ChatMessage, BaseSocketMessage, SocketEventType
 from src.core.encryption import encryption_service
 from src.modules.chat.service import chat_service
-from src.modules.chat.models import ChatType
+from src.modules.chat.enum import ChatType
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +12,35 @@ class ChatSocketService:
     
     @staticmethod
     async def handle_send_message(sio, sid: str, session: Dict[str, Any], data: Dict[str, Any]) -> Optional[ChatMessage]:
-        """메시지 전송 처리"""
+        """채팅 메시지 전송 처리"""
         try:
-            current_room = session.get('current_room')
-            if not current_room:
-                await sio.emit('error', {'message': '방에 입장해야 메시지를 보낼 수 있습니다.'}, room=sid)
+            # 토큰에서 방 정보 확인
+            from src.core.jwt_utils import jwt_manager
+            current_token = session.get('access_token')
+            
+            if not current_token:
+                await sio.emit('error', {'message': '토큰이 필요합니다.'}, room=sid)
                 return None
             
+            room_info = jwt_manager.get_room_info_from_token(current_token)
+            if not room_info:
+                await sio.emit('error', {'message': '방 정보가 없습니다.'}, room=sid)
+                return None
+            
+            room_id = room_info['room_id']
+            permissions = room_info['room_permissions']
+            
+            # 권한 확인
+            if permissions == "read":
+                await sio.emit('error', {'message': '읽기 전용 권한입니다.'}, room=sid)
+                return None
+            
+            # 방 ID 확인
+            if not room_id:
+                await sio.emit('error', {'message': '방 ID가 필요합니다.'}, room=sid)
+                return None
+            
+            # 메시지 검증 및 처리...
             message = data.get('message', '').strip()
             if not message:
                 await sio.emit('error', {'message': '메시지 내용이 필요합니다.'}, room=sid)
@@ -33,7 +55,7 @@ class ChatSocketService:
             
             # 메시지를 데이터베이스에 저장 (암호화된 상태로)
             saved_message = await chat_service.save_message(
-                room_id=current_room,
+                room_id=room_id,
                 user_id=session['user_id'],
                 username=session['username'],
                 display_name=session.get('display_name', session['username']),
@@ -54,13 +76,13 @@ class ChatSocketService:
             }
             
             # 방의 모든 사용자에게 메시지 전송
-            await sio.emit('new_message', message_data, room=current_room)
+            await sio.emit('new_message', message_data, room=room_id)
             
-            logger.info(f"Encrypted message sent by {session['username']} in room {current_room}")
+            logger.info(f"Encrypted message sent by {session['username']} in room {room_id}")
             
             return ChatMessage(
                 event_type=SocketEventType.SEND_MESSAGE,
-                room_id=current_room,
+                room_id=room_id,
                 user_id=session['user_id'],
                 username=session['username'],
                 display_name=session.get('display_name', session['username']),

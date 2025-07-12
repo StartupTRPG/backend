@@ -69,10 +69,27 @@ class RoomSocketService:
             if sid in connected_users:
                 connected_users[sid]['current_room'] = room_id
             
-            # 방 입장 성공 응답
+            # 기존 토큰에 방 정보 추가
+            from src.core.jwt_utils import jwt_manager
+            current_token = session.get('access_token')
+            updated_token = None
+            
+            if current_token:
+                updated_token = jwt_manager.update_token_with_room_info(
+                    token=current_token,
+                    room_id=room_id,
+                    room_permissions="write"
+                )
+                
+                # 세션에 업데이트된 토큰 저장
+                session['access_token'] = updated_token
+                await sio.save_session(sid, session)
+            
+            # 방 입장 성공 응답 (업데이트된 토큰 포함)
             await sio.emit('room_joined', {
                 'room_id': room_id,
                 'room_name': room.title,
+                'updated_token': updated_token,
                 'message': f'{room.title}에 입장했습니다.'
             }, room=sid)
             
@@ -187,8 +204,16 @@ class RoomSocketService:
             # Socket.IO 방에서 나가기
             await sio.leave_room(sid, room_id)
             
-            # 세션 업데이트
+            # 세션 업데이트 (토큰에서 방 정보 제거)
             session['current_room'] = None
+            
+            # 토큰에서 방 정보 제거
+            from src.core.jwt_utils import jwt_manager
+            current_token = session.get('access_token')
+            if current_token:
+                updated_token = jwt_manager.remove_room_info_from_token(current_token)
+                session['access_token'] = updated_token
+            
             await sio.save_session(sid, session)
             
             # 방 사용자 목록 업데이트

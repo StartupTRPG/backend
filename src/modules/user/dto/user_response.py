@@ -9,6 +9,7 @@ class UserResponse(BaseModel):
     email: Optional[EmailStr] = None
     nickname: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     last_login: Optional[datetime] = None
     
     class Config:

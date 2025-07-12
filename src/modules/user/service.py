@@ -3,20 +3,14 @@ import secrets
 from datetime import datetime
 from typing import Optional, Tuple
 from bson import ObjectId
-from src.core.mongodb import get_collection
 from src.core.jwt_utils import jwt_manager
 from .dto import UserCreateRequest, UserLoginRequest, UserResponse
 from src.modules.auth.dto import TokenResponse
+from .repository import get_user_repository, UserRepository
 
 class UserService:
-    def __init__(self):
-        self.collection = None
-    
-    def _get_collection(self):
-        """컬렉션을 지연 로딩"""
-        if self.collection is None:
-            self.collection = get_collection("users")
-        return self.collection
+    def __init__(self, user_repository: UserRepository = None):
+        self.user_repository = user_repository or get_user_repository()
     
     def generate_salt(self) -> str:
         """사용자별 고유 salt 생성"""
@@ -45,74 +39,86 @@ class UserService:
     
     async def create_user(self, user_data: UserCreateRequest) -> UserResponse:
         """사용자 생성"""
-        collection = self._get_collection()
         # 중복 사용자명 확인
-        existing_user = await collection.find_one({"username": user_data.username})
+        existing_user = await self.user_repository.find_by_username(user_data.username)
         if existing_user:
             raise ValueError("이미 존재하는 사용자명입니다.")
         
         # 비밀번호 해싱 (salt 포함)
         hashed_password, salt = self.create_password_hash(user_data.password)
         
-        # 사용자 문서 생성
-        user_doc = {
-            "username": user_data.username,
-            "email": user_data.email,
-            "nickname": user_data.nickname or user_data.username,
-            "password": hashed_password,
-            "salt": salt,  # salt를 DB에 저장
-            "created_at": datetime.utcnow(),
-            "last_login": None
-        }
+        # 사용자 엔티티 생성
+        from .models import User
+        user = User(
+            username=user_data.username,
+            email=user_data.email,
+            nickname=user_data.nickname or user_data.username,
+            password=hashed_password,
+            salt=salt,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            last_login=None
+        )
         
-        result = await collection.insert_one(user_doc)
-        user_doc["id"] = str(result.inserted_id)  # _id를 id로 변경
-        del user_doc["password"]  # 비밀번호 제거
-        del user_doc["salt"]  # salt 제거
+        # Repository를 통해 저장
+        user_id = await self.user_repository.create(user)
+        user.id = user_id
         
-        return UserResponse(**user_doc)
+        # UserResponse로 변환 (비밀번호 정보 제거)
+        return UserResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            nickname=user.nickname,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            last_login=user.last_login
+        )
     
     async def authenticate_user(self, login_data: UserLoginRequest) -> Optional[UserResponse]:
         """사용자 인증"""
-        collection = self._get_collection()
-        user_doc = await collection.find_one({"username": login_data.username})
-        if not user_doc:
+        user = await self.user_repository.find_by_username(login_data.username)
+        if not user:
             return None
         
         # salt가 없는 사용자는 인증 실패 (새로운 방식만 지원)
-        if "salt" not in user_doc:
+        if not user.salt:
             return None
         
         # PBKDF2 + salt 방식으로 비밀번호 검증
-        if not self.verify_password(login_data.password, user_doc["password"], user_doc["salt"]):
+        if not self.verify_password(login_data.password, user.password, user.salt):
             return None
         
         # 마지막 로그인 시간 업데이트
-        await collection.update_one(
-            {"_id": user_doc["_id"]},
-            {"$set": {"last_login": datetime.utcnow()}}
-        )
+        await self.user_repository.update_last_login(user.id)
         
-        user_doc["id"] = str(user_doc["_id"])  # _id를 id로 변경
-        if "password" in user_doc:
-            del user_doc["password"]  # 비밀번호 제거
-        if "salt" in user_doc:
-            del user_doc["salt"]  # salt 제거
-        return UserResponse(**user_doc)
+        # UserResponse로 변환 (비밀번호 정보 제거)
+        return UserResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            nickname=user.nickname,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            last_login=user.last_login
+        )
     
     async def get_user_by_id(self, user_id: str) -> Optional[UserResponse]:
         """사용자 ID로 조회"""
-        collection = self._get_collection()
-        user_doc = await collection.find_one({"_id": ObjectId(user_id)})
-        if not user_doc:
+        user = await self.user_repository.find_by_id(user_id)
+        if not user:
             return None
         
-        user_doc["id"] = str(user_doc["_id"])  # _id를 id로 변경
-        if "password" in user_doc:
-            del user_doc["password"]  # 비밀번호 제거
-        if "salt" in user_doc:
-            del user_doc["salt"]  # salt 제거
-        return UserResponse(**user_doc)
+        # UserResponse로 변환 (비밀번호 정보 제거)
+        return UserResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            nickname=user.nickname,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            last_login=user.last_login
+        )
     
     def create_tokens(self, user: UserResponse) -> TokenResponse:
         """토큰 쌍 생성"""
@@ -122,16 +128,14 @@ class UserService:
     
     async def delete_user(self, user_id: str) -> bool:
         """사용자 계정 삭제 (프로필도 함께 삭제)"""
-        collection = self._get_collection()
-        
         try:
             # 사용자 삭제
-            result = await collection.delete_one({"_id": ObjectId(user_id)})
+            success = await self.user_repository.delete(user_id)
             
-            if result.deleted_count > 0:
+            if success:
                 # 프로필도 함께 삭제
                 try:
-                    from .profile_service import user_profile_service
+                    from src.modules.profile.service import user_profile_service
                     await user_profile_service.delete_profile(user_id)
                 except Exception as e:
                     # 프로필 삭제 실패는 로그만 남김
@@ -144,5 +148,5 @@ class UserService:
         except Exception:
             return False
 
-# 전역 서비스 인스턴스
+# 전역 서비스 인스턴스 (의존성 주입을 위해 Repository를 주입)
 user_service = UserService() 

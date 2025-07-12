@@ -41,8 +41,10 @@ class AuthSocketService:
                 'connected_at': datetime.utcnow()
             }
             
-            # 사용자 세션 저장
-            await sio.save_session(sid, connected_users[sid])
+            # 사용자 세션 저장 (토큰 포함)
+            session_data = connected_users[sid].copy()
+            session_data['access_token'] = token  # 토큰을 세션에 저장
+            await sio.save_session(sid, session_data)
             
             logger.info(f"User {user.username} connected with sid {sid}")
             

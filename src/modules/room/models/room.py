@@ -20,7 +20,7 @@ class PlayerRole(str, Enum):
 
 class Room(BaseModel):
     """방 데이터베이스 스키마"""
-    id: str
+    id: Optional[str] = None
     title: str
     description: Optional[str] = None
     host_id: str

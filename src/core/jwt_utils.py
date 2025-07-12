@@ -36,8 +36,72 @@ class JWTManager:
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             return payload
-        except Exception:
+        except Exception as e:
             logger.error(f"토큰 검증 중 오류가 발생했습니다: {e}")
+            return None
+    
+    def update_token_with_room_info(self, token: str, room_id: str, room_permissions: str = "write") -> str:
+        """기존 토큰에 방 정보 추가"""
+        try:
+            # 기존 토큰 디코드
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            
+            # 방 정보 추가
+            payload.update({
+                "room_id": room_id,
+                "room_permissions": room_permissions,
+                "room_joined_at": datetime.utcnow().isoformat()
+            })
+            
+            # 새 토큰 생성 (기존 만료 시간 유지)
+            new_token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+            
+            logger.info(f"Updated token with room info: room_id={room_id}, user_id={payload.get('user_id')}")
+            return new_token
+            
+        except Exception as e:
+            logger.error(f"Failed to update token with room info: {str(e)}")
+            raise Exception("토큰 업데이트에 실패했습니다.")
+    
+    def remove_room_info_from_token(self, token: str) -> str:
+        """토큰에서 방 정보 제거"""
+        try:
+            # 기존 토큰 디코드
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            
+            # 방 정보 제거
+            payload.pop("room_id", None)
+            payload.pop("room_permissions", None)
+            payload.pop("room_joined_at", None)
+            
+            # 새 토큰 생성
+            new_token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
+            
+            logger.info(f"Removed room info from token for user_id={payload.get('user_id')}")
+            return new_token
+            
+        except Exception as e:
+            logger.error(f"Failed to remove room info from token: {str(e)}")
+            raise Exception("토큰에서 방 정보 제거에 실패했습니다.")
+    
+    def get_room_info_from_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """토큰에서 방 정보 추출"""
+        try:
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            
+            room_info = {
+                "room_id": payload.get("room_id"),
+                "room_permissions": payload.get("room_permissions"),
+                "room_joined_at": payload.get("room_joined_at")
+            }
+            
+            # 방 정보가 모두 있는지 확인
+            if all(room_info.values()):
+                return room_info
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to get room info from token: {str(e)}")
             return None
     
     def create_token_pair(self, user_id: str, username: str):
