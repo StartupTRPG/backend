@@ -5,7 +5,8 @@ from typing import Optional, List, Dict, Any
 from bson import ObjectId
 from src.modules.user.dto import UserResponse
 from .dto import RoomCreateRequest, RoomUpdateRequest, RoomResponse, RoomListResponse
-from .models import Room, RoomPlayer, RoomStatus, RoomVisibility, PlayerRole
+from .models import Room, RoomPlayer
+from .enums import RoomStatus, RoomVisibility, PlayerRole
 from .repository import get_room_repository, RoomRepository
 
 logger = logging.getLogger(__name__)

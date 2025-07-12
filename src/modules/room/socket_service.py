@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
-from src.core.socket.interfaces import RoomMessage, SocketEventType
+from src.core.socket.models import RoomMessage, SocketEventType
 from src.modules.room.service import room_service
 
 logger = logging.getLogger(__name__)

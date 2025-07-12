@@ -1,38 +1,8 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import datetime
-from enum import Enum
-
-class RoomStatus(str, Enum):
-    WAITING = "waiting"          # 대기 중 (로비)
-    PLAYING = "playing"          # 게임 진행 중
-    FINISHED = "finished"        # 게임 종료
-
-class RoomVisibility(str, Enum):
-    PUBLIC = "public"        # 공개 방
-    PRIVATE = "private"      # 비공개 방
-
-class PlayerRole(str, Enum):
-    HOST = "host"           # 방장
-    PLAYER = "player"       # 플레이어
-    OBSERVER = "observer"   # 관찰자
-
-class RoomPlayer(BaseModel):
-    """방 플레이어 데이터베이스 스키마"""
-    user_id: str
-    username: str
-    role: PlayerRole
-    joined_at: datetime
-    is_host: bool = False  # 프로퍼티 대신 필드로 추가
-    
-    def __init__(self, **data):
-        super().__init__(**data)
-        # role이 HOST인 경우 is_host를 True로 설정
-        if self.role == PlayerRole.HOST:
-            self.is_host = True
-    
-    class Config:
-        from_attributes = True
+from ..enums import RoomStatus, RoomVisibility, PlayerRole
+from .room_player import RoomPlayer
 
 class Room(BaseModel):
     """방 데이터베이스 스키마"""
@@ -97,9 +67,4 @@ class Room(BaseModel):
         return None
     
     class Config:
-        from_attributes = True
-
-
-class LobbyProfileCreate(BaseModel):
-    """로비 프로필 생성 요청 (이름만)"""
-    character_name: str 
+        from_attributes = True 

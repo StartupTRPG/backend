@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from ..models import PlayerRole
+from ..enums import PlayerRole
 
 class RoomPlayerResponse(BaseModel):
     """방 플레이어 응답 DTO"""

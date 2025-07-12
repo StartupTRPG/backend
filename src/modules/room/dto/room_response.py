@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-from ..models import RoomStatus, RoomVisibility
+from ..enums import RoomStatus, RoomVisibility
 from .room_player_response import RoomPlayerResponse
 
 class RoomResponse(BaseModel):

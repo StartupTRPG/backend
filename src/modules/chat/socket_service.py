@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, Optional
-from src.core.socket.interfaces import ChatMessage, BaseSocketMessage, SocketEventType
+from src.core.socket.models import ChatMessage, BaseSocketMessage, SocketEventType
 from src.core.encryption import encryption_service
 from src.modules.chat.service import chat_service
 from src.modules.chat.enum import ChatType

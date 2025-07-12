@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from ..models import RoomVisibility
+from ..enums import RoomVisibility
 
 class RoomCreateRequest(BaseModel):
     """방 생성 요청 DTO"""

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from ..models import RoomVisibility
+from ..enums import RoomVisibility
 
 class RoomUpdateRequest(BaseModel):
     """방 수정 요청 DTO"""

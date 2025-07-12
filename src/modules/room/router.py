@@ -11,7 +11,7 @@ from .dto import (
     RoomCreateRequest, RoomUpdateRequest, RoomResponse, 
     RoomListResponse
 )
-from .models import RoomStatus, RoomVisibility
+from .enums import RoomStatus, RoomVisibility
 
 router = APIRouter(prefix="/rooms", tags=["방"])
 security = HTTPBearer()

@@ -1,7 +1,6 @@
-# Socket.IO 관련 모듈
 from .server import sio, connected_users, room_users, create_socketio_app
 from .handler import SocketMessageHandler
-from .interfaces import (
+from .models import (
     SocketEventType, BaseSocketMessage,
     AuthMessage, RoomMessage, ChatMessage, SystemMessage
 )

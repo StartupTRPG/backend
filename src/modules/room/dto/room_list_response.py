@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from ..models import RoomStatus, RoomVisibility
+from ..enums import RoomStatus, RoomVisibility
 
 class RoomListResponse(BaseModel):
     """방 목록 응답 DTO"""
