@@ -6,6 +6,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.core.config import settings
 import logging
 
+from src.modules.user.models.user import User
+
 logger = logging.getLogger(__name__)
 
 class JWTManager:
@@ -166,4 +168,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="토큰 검증 중 오류가 발생했습니다.",
             headers={"WWW-Authenticate": "Bearer"},
-        ) 
+        )
+
+async def get_current_admin(current_user: User = Depends(get_current_user)):
+    """현재 관리자 사용자 정보 조회"""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자 권한이 필요합니다.",
+        )
+    return current_user 

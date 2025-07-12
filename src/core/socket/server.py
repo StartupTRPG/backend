@@ -1,6 +1,7 @@
 import socketio
 from fastapi import FastAPI
 from typing import Dict, List
+from datetime import datetime
 import logging
 
 from .handler import SocketMessageHandler
@@ -36,6 +37,16 @@ def create_socketio_app(fastapi_app: FastAPI):
         except Exception as e:
             logger.error(f"Connect error: {str(e)}")
             raise socketio.exceptions.ConnectionRefusedError(str(e))
+    
+    @sio.event
+    async def ping(sid, data):
+        """클라이언트 핑 이벤트 - 세션 활동 업데이트"""
+        try:
+            from src.core.session_manager import session_manager
+            await session_manager.update_session_activity(sid)
+            await sio.emit('pong', {'timestamp': datetime.utcnow().isoformat()}, room=sid)
+        except Exception as e:
+            logger.error(f"Ping error: {str(e)}")
     
     @sio.event
     async def disconnect(sid):

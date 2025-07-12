@@ -36,9 +36,16 @@ class RoomSocketService:
                 await sio.emit('error', {'message': '방이 가득 찼습니다.'}, room=sid)
                 return None
             
-            # 이미 다른 방에 있다면 나가기
+            # 세션 매니저를 통한 방 입장 (여러 방 접속 방지)
+            from src.core.session_manager import session_manager
+            room_joined = await session_manager.join_room(sid, user_id, room_id)
+            if not room_joined:
+                await sio.emit('error', {'message': '방 입장에 실패했습니다.'}, room=sid)
+                return None
+            
+            # 이미 다른 방에 있다면 나가기 (기존 로직 유지)
             current_room = session.get('current_room')
-            if current_room:
+            if current_room and current_room != room_id:
                 await RoomSocketService.handle_leave_room_internal(sio, sid, current_room)
             
             # 방 입장 처리
@@ -58,7 +65,7 @@ class RoomSocketService:
             session['current_room'] = room_id
             await sio.save_session(sid, session)
             
-            # 방 사용자 목록 업데이트
+            # 방 사용자 목록 업데이트 (기존 로직 유지)
             from src.core.socket.server import room_users, connected_users
             if room_id not in room_users:
                 room_users[room_id] = []
@@ -215,7 +222,11 @@ class RoomSocketService:
             
             await sio.save_session(sid, session)
             
-            # 방 사용자 목록 업데이트
+            # 세션 매니저에서 방 나가기
+            from src.core.session_manager import session_manager
+            await session_manager.leave_room(sid, user_id)
+            
+            # 방 사용자 목록 업데이트 (기존 로직 유지)
             from src.core.socket.server import room_users, connected_users
             if room_id in room_users and sid in room_users[room_id]:
                 room_users[room_id].remove(sid)

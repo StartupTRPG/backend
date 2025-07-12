@@ -25,4 +25,5 @@ class SocketEventType(str, Enum):
     SYSTEM_MESSAGE = "system_message"
     
     # 공통
-    ERROR = "error" 
+    ERROR = "error"
+    FORCE_DISCONNECT = "force_disconnect" 

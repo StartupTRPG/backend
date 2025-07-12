@@ -31,6 +31,12 @@ class AuthSocketService:
                 logger.warning(f"Connection rejected for {sid}: User not found")
                 raise Exception('User not found')
             
+            # 세션 매니저에 사용자 등록 (중복 로그인 방지)
+            from src.core.session_manager import session_manager
+            session_registered = await session_manager.register_session(sid, user.id)
+            if not session_registered:
+                raise Exception('세션 등록에 실패했습니다.')
+            
             # 연결된 사용자 정보 저장
             from src.core.socket.server import connected_users
             connected_users[sid] = {
@@ -80,6 +86,10 @@ class AuthSocketService:
                 if current_room:
                     from src.modules.room.socket_service import RoomSocketService
                     await RoomSocketService.handle_leave_room_internal(sio, sid, current_room)
+                
+                # 세션 매니저에서 사용자 제거
+                from src.core.session_manager import session_manager
+                await session_manager.unregister_session(sid)
                 
                 # 연결된 사용자 목록에서 제거
                 from src.core.socket.server import connected_users
