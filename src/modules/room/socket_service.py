@@ -31,9 +31,8 @@ class RoomSocketService:
                 await sio.emit('error', {'message': '비밀번호가 올바르지 않습니다.'}, room=sid)
                 return None
             
-            # 방 최대 인원 확인
-            current_players = await room_service.get_room_players(room_id)
-            if len(current_players) >= room.max_players:
+            # 방 최대 인원 확인 (새로운 Room 모델 구조 사용)
+            if room.current_players >= room.max_players:
                 await sio.emit('error', {'message': '방이 가득 찼습니다.'}, room=sid)
                 return None
             

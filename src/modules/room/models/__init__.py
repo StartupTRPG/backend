@@ -1,6 +1,6 @@
-from .room import Room, RoomPlayer, GameProfile, GameProfileCreate, LobbyProfileCreate, RoomStatus, RoomVisibility, PlayerRole
+from .room import Room, RoomPlayer, RoomStatus, RoomVisibility, PlayerRole
 
 __all__ = [
-    'Room', 'RoomPlayer', 'GameProfile', 'GameProfileCreate', 'LobbyProfileCreate',
+    'Room', 'RoomPlayer',
     'RoomStatus', 'RoomVisibility', 'PlayerRole'
 ] 

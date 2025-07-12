@@ -98,8 +98,11 @@ async def update_my_profile(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/user/{user_id}", response_model=GetUserProfileResponse)
-async def get_user_profile(user_id: str):
-    """다른 사용자의 공개 프로필 조회"""
+async def get_user_profile(
+    user_id: str,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """다른 사용자의 공개 프로필 조회 (인증된 유저만)"""
     try:
         profile = await user_profile_service.get_public_profile(user_id)
         if not profile:
@@ -117,9 +120,10 @@ async def get_user_profile(user_id: str):
 @router.get("/search", response_model=SearchProfilesResponse)
 async def search_profiles(
     q: str = Query(..., min_length=2, description="검색어"),
-    limit: int = Query(20, ge=1, le=50, description="결과 수 제한")
+    limit: int = Query(20, ge=1, le=50, description="결과 수 제한"),
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    """프로필 검색 (사용자 찾기)"""
+    """프로필 검색 (사용자 찾기) - 인증된 유저만"""
     try:
         profiles = await user_profile_service.search_profiles(q, limit)
         return SearchProfilesResponse(

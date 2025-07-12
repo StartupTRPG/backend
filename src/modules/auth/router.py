@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, HTTPException, Depends, Response
+from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.modules.user.service import user_service
 from src.modules.user.dto import UserCreateRequest, UserLoginRequest
@@ -10,7 +10,6 @@ from src.modules.auth.dto import (
 from src.modules.profile.service import user_profile_service
 from src.modules.profile.models import UserProfileCreate
 from src.core.jwt_utils import jwt_manager
-from src.core.response import ApiResponse
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +53,8 @@ async def register(user_data: UserCreateRequest):
         raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다.")
 
 @router.post("/login", response_model=LoginResponse)
-async def login(login_data: UserLoginRequest):
-    """사용자 로그인 - 토큰 발급 (응답으로만 전달)"""
+async def login(login_data: UserLoginRequest, response: Response):
+    """사용자 로그인 - 토큰 발급 (refresh token은 HTTP-only 쿠키로 설정)"""
     try:
         user = await user_service.authenticate_user(login_data)
         if not user:
@@ -63,9 +62,18 @@ async def login(login_data: UserLoginRequest):
         
         tokens = user_service.create_tokens(user)
         
+        # refresh token을 HTTP-only 쿠키로 설정
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens.refresh_token,
+            httponly=True,
+            secure=False,  # 개발환경에서는 False, 프로덕션에서는 True
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60  # 7일
+        )
+        
         data = {
             "access_token": tokens.access_token,
-            "refresh_token": tokens.refresh_token,
             "token_type": tokens.token_type,
             "expires_in": tokens.expires_in
         }
@@ -82,13 +90,15 @@ async def login(login_data: UserLoginRequest):
         raise HTTPException(status_code=500, detail="로그인 중 오류가 발생했습니다.")
 
 @router.post("/refresh", response_model=RefreshResponse)
-async def refresh_token(refresh_data: RefreshTokenRequest):
-    """토큰 갱신"""
+async def refresh_token(request: Request, response: Response):
+    """토큰 갱신 - 쿠키에서 refresh token 읽기"""
     try:
-        if not refresh_data.refresh_token or refresh_data.refresh_token.strip() == "":
+        # 쿠키에서 refresh token 읽기
+        refresh_token = request.cookies.get("refresh_token")
+        if not refresh_token:
             raise HTTPException(status_code=400, detail="리프레시 토큰이 필요합니다.")
         
-        payload = jwt_manager.verify_token(refresh_data.refresh_token)
+        payload = jwt_manager.verify_token(refresh_token)
         if not payload:
             raise HTTPException(status_code=401, detail="유효하지 않은 리프레시 토큰입니다.")
         
@@ -101,9 +111,18 @@ async def refresh_token(refresh_data: RefreshTokenRequest):
         
         tokens = user_service.create_tokens(user)
         
+        # 새로운 refresh token을 HTTP-only 쿠키로 설정
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens.refresh_token,
+            httponly=True,
+            secure=False,  # 개발환경에서는 False, 프로덕션에서는 True
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60  # 7일
+        )
+        
         data = {
             "access_token": tokens.access_token,
-            "refresh_token": tokens.refresh_token,
             "token_type": tokens.token_type,
             "expires_in": tokens.expires_in
         }
@@ -146,16 +165,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=500, detail="사용자 정보 조회 중 오류가 발생했습니다.")
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout():
-    """사용자 로그아웃 - 클라이언트에서 토큰 삭제 필요"""
+async def logout(response: Response):
+    """사용자 로그아웃 - refresh token 쿠키 삭제"""
     try:
+        # refresh token 쿠키 삭제
+        response.delete_cookie(
+            key="refresh_token",
+            httponly=True,
+            secure=False,
+            samesite="lax"
+        )
+        
         return LogoutResponse(
             data={
                 "instructions": {
-                    "client_action": "토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
+                    "client_action": "액세스 토큰을 로컬 저장소에서 삭제하고 Socket.IO 연결을 해제하세요."
                 }
             },
-            message="로그아웃이 완료되었습니다. 클라이언트에서 토큰을 삭제해주세요.",
+            message="로그아웃이 완료되었습니다. 클라이언트에서 액세스 토큰을 삭제해주세요.",
             success=True
         )
     except Exception as e:

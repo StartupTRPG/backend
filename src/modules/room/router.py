@@ -60,9 +60,10 @@ async def list_rooms(
     visibility: Optional[RoomVisibility] = Query(None, description="방 공개 설정 필터"),
     search: Optional[str] = Query(None, description="검색어 (제목, 설명)"),
     page: int = Query(1, ge=1, description="페이지 번호"),
-    limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수")
+    limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수"),
+    current_user: UserResponse = Depends(get_current_user)
 ):
-    """방 목록 조회"""
+    """방 목록 조회 (인증된 유저만)"""
     try:
         rooms = await room_service.list_rooms(
             status=status,
@@ -95,8 +96,11 @@ async def get_my_rooms(
         raise HTTPException(status_code=500, detail=f"내 방 목록 조회 중 오류가 발생했습니다: {str(e)}")
 
 @router.get("/{room_id}", response_model=ApiResponse[RoomResponse])
-async def get_room(room_id: str):
-    """방 정보 조회"""
+async def get_room(
+    room_id: str,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """방 정보 조회 (인증된 유저만)"""
     try:
         room = await room_service.get_room(room_id)
         if not room:
