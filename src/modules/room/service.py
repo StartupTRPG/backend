@@ -257,28 +257,32 @@ class RoomService:
             logger.error(f"Error getting players from room '{room_id}': {str(e)}")
             return []
         
-    async def get_user_rooms(self, user_id: str) -> List[RoomListResponse]:
-        """사용자가 참가한 방 목록 조회"""
+    async def get_user_room(self, user_id: str) -> Optional[RoomResponse]:
+        """사용자가 참가한 방 조회"""
         try:
-            # 사용자가 플레이어로 참가한 방들을 조회
+            # 사용자가 플레이어로 참가한 방을 조회
             filter_query = {
                 "players.user_id": user_id
             }
-            rooms = await self.room_repository.find_many(filter_query, 0, 100)
+            rooms = await self.room_repository.find_many(filter_query, 0, 1)
             
-            room_list_responses = []
-            for room in rooms:
-                room_data = room.model_dump()
-                room_data.update({
-                    "current_players": room.current_players
-                })
-                room_list_responses.append(RoomListResponse(**room_data))
+            if not rooms:
+                return None
             
-            return room_list_responses
+            room = rooms[0]  # 첫 번째 방만 반환
+            
+            # RoomResponse에 필요한 필드들을 추가하여 반환
+            room_data_dict = room.model_dump()
+            room_data_dict.update({
+                "current_players": room.current_players,
+                "players": [player.model_dump() for player in room.players]
+            })
+            
+            return RoomResponse(**room_data_dict)
             
         except Exception as e:
-            logger.error(f"Error getting user rooms for user '{user_id}': {str(e)}")
-            return []
+            logger.error(f"Error getting user room for user '{user_id}': {str(e)}")
+            return None
     
     async def end_game(self, room_id: str, user_id: str) -> bool:
          # 게임 종료 로직 구현

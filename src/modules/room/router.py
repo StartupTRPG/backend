@@ -81,20 +81,24 @@ async def list_rooms(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"방 목록 조회 중 오류가 발생했습니다: {str(e)}")
 
-@router.get("/my", response_model=ApiResponse[List[RoomListResponse]])
-async def get_my_rooms(
+@router.get("/my", response_model=ApiResponse[RoomResponse])
+async def get_my_room(
     current_user: UserResponse = Depends(get_current_user)
 ):
-    """내가 참가한 방 목록 조회"""
+    """내가 참가한 방 조회"""
     try:
-        rooms = await room_service.get_user_rooms(current_user.id)
+        room = await room_service.get_user_room(current_user.id)
+        if not room:
+            raise HTTPException(status_code=404, detail="참가한 방이 없습니다.")
         return ApiResponse(
-            data=rooms,
-            message="내 방 목록을 성공적으로 조회했습니다.",
+            data=room,
+            message="내 방을 성공적으로 조회했습니다.",
             success=True
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"내 방 목록 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"내 방 조회 중 오류가 발생했습니다: {str(e)}")
 
 @router.get("/{room_id}", response_model=ApiResponse[RoomResponse])
 async def get_room(
