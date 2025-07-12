@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional
+from typing import List
 from src.core.jwt_utils import get_current_user
-from src.core.response import ApiResponse
 from src.modules.user.dto import UserResponse
 from .service import chat_service
 from .dto import RoomChatHistoryResponse, GetChatHistoryResponse, DeleteChatHistoryResponse
@@ -15,7 +14,7 @@ async def get_room_chat_history(
     limit: int = Query(50, ge=1, le=100, description="Messages per page"),
     current_user: UserResponse = Depends(get_current_user)
 ):
-    """Get room chat history (all messages)"""
+    """Get room chat history"""
     try:
         # TODO: Check if user has access to the room
         # Currently, any logged-in user can view chat history of all rooms
@@ -30,21 +29,23 @@ async def get_room_chat_history(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred while retrieving chat history: {str(e)}")
 
-
-
 @router.delete("/room/{room_id}/history", response_model=DeleteChatHistoryResponse)
 async def delete_room_chat_history(
     room_id: str,
     current_user: UserResponse = Depends(get_current_user)
 ):
-    """Delete all chat messages in a room"""
+    """방의 채팅 기록 삭제 (관리자 전용)"""
     try:
+        # TODO: 관리자 권한 확인 또는 방 호스트 권한 확인
+        
         deleted_count = await chat_service.delete_room_messages(room_id)
         return DeleteChatHistoryResponse(
-            data={"deleted_count": deleted_count},
-            message=f"Successfully deleted {deleted_count} messages from room {room_id}.",
+            data={
+                "deleted_count": deleted_count
+            },
+            message=f"방 {room_id}의 채팅 기록이 삭제되었습니다.",
             success=True
         )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred while deleting chat history: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"채팅 기록 삭제 중 오류가 발생했습니다: {str(e)}") 

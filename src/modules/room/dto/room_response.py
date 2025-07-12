@@ -15,6 +15,7 @@ class RoomResponse(BaseModel):
     max_players: int
     status: RoomStatus
     visibility: RoomVisibility
+    has_password: bool
     created_at: datetime
     updated_at: datetime
     game_settings: dict

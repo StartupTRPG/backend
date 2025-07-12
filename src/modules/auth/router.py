@@ -10,8 +10,6 @@ from src.modules.auth.dto import (
 from src.modules.profile.service import user_profile_service
 from src.modules.profile.models import UserProfileCreate
 from src.core.jwt_utils import jwt_manager
-from src.core.response import ApiResponse
-from src.modules.user.dto import UserResponse as UserResponseData
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +154,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=401, detail="사용자를 찾을 수 없습니다.")
         
         return UserResponse(
-            data=user.model_dump(),  # UserResponse 객체를 딕셔너리로 변환
+            data=user.dict(),
             message="사용자 정보를 성공적으로 조회했습니다.",
             success=True
         )

@@ -5,22 +5,12 @@ from src.modules.chat.models import ChatMessage
 from src.modules.chat.enum import ChatType
 from src.modules.chat.dto import ChatMessageResponse, RoomChatHistoryResponse
 from src.modules.chat.repository import get_chat_repository, ChatRepository
-from src.modules.room.enums import RoomStatus
 
 logger = logging.getLogger(__name__)
 
 class ChatService:
     def __init__(self, chat_repository: ChatRepository = None):
         self.chat_repository = chat_repository or get_chat_repository()
-    
-    def _determine_chat_category(self, room_status: RoomStatus, message_type: ChatType) -> str:
-        """Determine chat category based on room status and message type"""
-        if room_status == RoomStatus.WAITING:
-            return "lobby"
-        elif room_status == RoomStatus.PLAYING:
-            return "game"
-        else:
-            return "general"
     
     async def save_message(
         self, 
@@ -29,16 +19,11 @@ class ChatService:
         username: str, 
         display_name: str, 
         content: str, 
-        message_type: ChatType = ChatType.LOBBY,
-        room_status: RoomStatus = RoomStatus.WAITING
+        message_type: ChatType = ChatType.TEXT
     ) -> ChatMessageResponse:
         """Save chat message"""
         try:
             logger.info(f"Saving message in room {room_id} by user {username}")
-            
-            # Determine chat category based on room status
-            chat_category = self._determine_chat_category(room_status, message_type)
-            
             message = ChatMessage(
                 id=None,
                 room_id=room_id,
@@ -46,8 +31,7 @@ class ChatService:
                 display_name=display_name,
                 message_type=message_type,
                 content=content,
-                timestamp=datetime.utcnow(),
-                chat_category=chat_category
+                timestamp=datetime.utcnow()
             )
             message_id = await self.chat_repository.create(message)
             message.id = message_id
@@ -69,32 +53,23 @@ class ChatService:
         self, 
         room_id: str, 
         page: int = 1, 
-        limit: int = 50,
-        chat_category: Optional[str] = None
+        limit: int = 50
     ) -> RoomChatHistoryResponse:
         """Get room chat messages (with pagination)"""
         try:
-            logger.info(f"Fetching messages for room {room_id} (page: {page}, limit: {limit}, category: {chat_category})")
+            logger.info(f"Fetching messages for room {room_id} (page: {page}, limit: {limit})")
             skip = (page - 1) * limit
-            
-            # Filter by chat category if specified
-            filter_query = {"room_id": room_id}
-            if chat_category:
-                filter_query["chat_category"] = chat_category
-                
-            messages = await self.chat_repository.find_many(filter_query, skip, limit)
-            # Sort by time (oldest first)
+            messages = await self.chat_repository.find_by_room_id(room_id, skip, limit)
+            # 시간순 정렬 (오래된 것부터)
             messages = sorted(messages, key=lambda m: m.timestamp)
-            
-            # Get total message count
-            total_count = await self.chat_repository.count(filter_query)
-            
+            # 총 메시지 수 조회
+            total_count = await self.chat_repository.count({"room_id": room_id})
             return RoomChatHistoryResponse(
                 room_id=room_id,
                 messages=[ChatMessageResponse(
                     id=m.id,
                     room_id=m.room_id,
-                    user_id=None,  # user_id field not in ChatMessage. Modify model if needed
+                    user_id=None,  # user_id 필드는 ChatMessage에 없음. 필요시 모델 수정
                     username=m.username,
                     display_name=m.display_name,
                     message_type=m.message_type,
@@ -109,15 +84,16 @@ class ChatService:
             logger.error(f"Error fetching messages for room {room_id}: {str(e)}")
             raise
     
-    async def get_lobby_messages(self, room_id: str, page: int = 1, limit: int = 50) -> RoomChatHistoryResponse:
-        """Get lobby chat messages"""
-        return await self.get_room_messages(room_id, page, limit, "lobby")
-    
-    async def get_game_messages(self, room_id: str, page: int = 1, limit: int = 50) -> RoomChatHistoryResponse:
-        """Get game chat messages"""
-        return await self.get_room_messages(room_id, page, limit, "game")
-    
-
+    async def save_system_message(self, room_id: str, content: str) -> ChatMessageResponse:
+        logger.info(f"Saving system message in room {room_id}: {content}")
+        return await self.save_message(
+            room_id=room_id,
+            user_id="system",
+            username="System",
+            display_name="System",
+            content=content,
+            message_type=ChatType.SYSTEM
+        )
     
     async def delete_room_messages(self, room_id: str) -> int:
         try:

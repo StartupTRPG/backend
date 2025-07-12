@@ -13,6 +13,7 @@ class RoomListResponse(BaseModel):
     max_players: int
     status: RoomStatus
     visibility: RoomVisibility
+    has_password: bool
     created_at: datetime
     
     class Config:

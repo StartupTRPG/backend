@@ -21,6 +21,8 @@ from src.modules.auth.router import router as auth_router
 from src.modules.room.router import router as room_router
 from src.modules.profile.router import router as profile_router
 from src.modules.chat.router import router as chat_router
+from src.modules.admin.router import router as admin_router
+from src.core.socket import create_socketio_app
 
 # Logging configuration
 logging.basicConfig(
@@ -232,6 +234,7 @@ app.include_router(auth_router)
 app.include_router(room_router)
 app.include_router(profile_router)
 app.include_router(chat_router)
+app.include_router(admin_router)
 
 @app.get("/")
 async def root():
@@ -254,10 +257,11 @@ async def health_check():
         "database": "connected" if db_status else "disconnected"
     }
 
+socket_app = create_socketio_app(app)
 
 if __name__ == "__main__":
     uvicorn.run(
-        app,  # Socket.IO가 통합된 앱 사용
+        socket_app,  # Socket.IO가 통합된 앱 사용
         host="0.0.0.0",
         port=8000,
         log_level="debug",  # DEBUG 레벨로 설정
