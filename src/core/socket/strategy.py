@@ -85,20 +85,7 @@ class RoomLeaveStrategy(SocketMessageStrategy):
     def get_event_type(self) -> SocketEventType:
         return SocketEventType.LEAVE_ROOM
 
-class RoomUsersStrategy(SocketMessageStrategy):
-    """Room user list query handling strategy"""
-    
-    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
-        # Session validation required
-        session = await self._validate_session(sio, sid)
-        if not session:
-            return None
-        
-        from src.modules.room.socket_service import RoomSocketService
-        return await RoomSocketService.handle_get_room_users(sio, sid, session, data)
-    
-    def get_event_type(self) -> SocketEventType:
-        return SocketEventType.GET_ROOM_USERS
+
 
 
 

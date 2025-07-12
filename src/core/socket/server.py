@@ -63,10 +63,7 @@ def create_socketio_app(fastapi_app: FastAPI):
         """방 나가기 이벤트"""
         await message_handler.handle_message(SocketEventType.LEAVE_ROOM, sid, data)
     
-    @sio.event
-    async def get_room_users(sid, data):
-        """방 사용자 목록 조회 이벤트"""
-        await message_handler.handle_message(SocketEventType.GET_ROOM_USERS, sid, data)
+
     
     @sio.event
     async def send_message(sid, data):

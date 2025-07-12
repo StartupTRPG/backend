@@ -53,6 +53,14 @@ class RoomSocketService:
             
             # Socket.IO 방에 입장
             await sio.enter_room(sid, room_id)
+            await sio.emit('join_room', {
+                'room_id': room_id,
+                'user_id': user_id,
+                'username': username,
+                'display_name': session.get('display_name', username),
+                'message': f'{username} has joined.',
+                'timestamp': datetime.utcnow().isoformat()
+            }, room=room_id)
             
             # 세션 업데이트
             session['current_room'] = room_id
@@ -84,28 +92,7 @@ class RoomSocketService:
                 session['access_token'] = updated_token
                 await sio.save_session(sid, session)
             
-            # 방 입장 성공 응답 (업데이트된 토큰 포함)
-            await sio.emit('room_joined', {
-                'room_id': room_id,
-                'room_name': room.title,
-                'updated_token': updated_token,
-                'message': f'Joined {room.title}.'
-            }, room=sid)
-            
-            # 시스템 메시지 저장 및 전송
-            await RoomSocketService._send_system_message(
-                sio, room_id, f'{username} has joined.', 
-                metadata={"user_id": user_id, "username": username}
-            )
-            
-            # 다른 사용자들에게 입장 알림
-            await sio.emit('user_joined', {
-                'user_id': user_id,
-                'username': username,
-                'display_name': session.get('display_name', username),
-                'message': f'{username} has joined.',
-                'timestamp': datetime.utcnow().isoformat()
-            }, room=room_id, skip_sid=sid)
+
             
             logger.info(f"User {username} joined room {room_id}")
             
@@ -132,6 +119,8 @@ class RoomSocketService:
             
             await RoomSocketService.handle_leave_room_internal(sio, sid, room_id)
             
+
+            
             return RoomMessage(
                 event_type=SocketEventType.LEAVE_ROOM,
                 room_id=room_id,
@@ -144,49 +133,7 @@ class RoomSocketService:
             await sio.emit('error', {'message': 'An error occurred while leaving the room.'}, room=sid)
             return None
     
-    @staticmethod
-    async def handle_get_room_users(sio, sid: str, session: Dict[str, Any], data: Dict[str, Any]) -> Optional[RoomMessage]:
-        """방 사용자 목록 조회"""
-        try:
-            room_id = data.get('room_id') or session.get('current_room')
-            if not room_id:
-                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
-                return None
-            
-            # 데이터베이스에서 방 사용자 목록 조회
-            players = await room_service.get_room_players(room_id)
-            
-            # 사용자 정보 구성
-            users = []
-            for player in players:
-                user_info = {
-                    'user_id': player.user_id,
-                    'username': player.username,
-                    'display_name': player.username,  # 프로필 정보가 있다면 사용
-                    'is_host': player.is_host,
-                    'joined_at': player.joined_at.isoformat()
-                }
-                users.append(user_info)
-            
-            await sio.emit('room_users', {
-                'room_id': room_id,
-                'users': users,
-                'total_count': len(users)
-            }, room=sid)
-            
-            logger.info(f"Room users retrieved for room {room_id}")
-            
-            return RoomMessage(
-                event_type=SocketEventType.GET_ROOM_USERS,
-                room_id=room_id,
-                user_id=session['user_id'],
-                username=session['username']
-            )
-            
-        except Exception as e:
-            logger.error(f"Get room users error for {sid}: {str(e)}")
-            await sio.emit('error', {'message': 'An error occurred while retrieving room users.'}, room=sid)
-            return None
+
     
     @staticmethod
     async def handle_leave_room_internal(sio, sid: str, room_id: str):
@@ -204,6 +151,14 @@ class RoomSocketService:
             
             # Socket.IO 방에서 나가기
             await sio.leave_room(sid, room_id)
+            await sio.emit('leave_room', {
+                'room_id': room_id,
+                'user_id': user_id,
+                'username': username,
+                'display_name': session.get('display_name', username),
+                'message': f'{username} has left.',
+                'timestamp': datetime.utcnow().isoformat()
+            }, room=room_id)
             
             # 세션 업데이트 (토큰에서 방 정보 제거)
             session['current_room'] = None
@@ -232,46 +187,11 @@ class RoomSocketService:
             if sid in connected_users:
                 connected_users[sid]['current_room'] = None
             
-            # 방 나가기 성공 응답
-            await sio.emit('room_left', {
-                'room_id': room_id,
-                'message': 'You have left the room.'
-            }, room=sid)
-            
-            # 시스템 메시지 저장 및 전송
-            await RoomSocketService._send_system_message(
-                sio, room_id, f'{username} has left.', 
-                metadata={"user_id": user_id, "username": username}
-            )
-            
-            # 다른 사용자들에게 퇴장 알림
-            await sio.emit('user_left', {
-                'user_id': user_id,
-                'username': username,
-                'display_name': session.get('display_name', username),
-                'message': f'{username} has left.',
-                'timestamp': datetime.utcnow().isoformat()
-            }, room=room_id)
+
             
             logger.info(f"User {username} left room {room_id}")
             
         except Exception as e:
             logger.error(f"Leave room internal error: {str(e)}")
     
-    @staticmethod
-    async def _send_system_message(sio, room_id: str, content: str, metadata: dict = {}):
-        """시스템 메시지 전송"""
-        from datetime import datetime
-        
-        # 시스템 메시지를 채팅으로 전송
-        await sio.emit('system_message', {
-            'id': f"system_{int(datetime.utcnow().timestamp() * 1000)}",
-            'user_id': 'system',
-            'username': 'System',
-            'display_name': 'System',
-            'message': content,
-            'timestamp': datetime.utcnow().isoformat(),
-            'message_type': 'system',
-            'metadata': metadata,
-            'encrypted': False
-        }, room=room_id) 
+ 

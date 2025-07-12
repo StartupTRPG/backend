@@ -7,7 +7,6 @@ from .strategy import (
     AuthDisconnectStrategy,
     RoomJoinStrategy,
     RoomLeaveStrategy,
-    RoomUsersStrategy,
     LobbyMessageStrategy,
     GameMessageStrategy,
     SystemMessageStrategy
@@ -29,7 +28,6 @@ class SocketMessageStrategyFactory:
             AuthDisconnectStrategy(),
             RoomJoinStrategy(),
             RoomLeaveStrategy(),
-            RoomUsersStrategy(),
             LobbyMessageStrategy(),
             GameMessageStrategy(),
             SystemMessageStrategy()
