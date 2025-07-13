@@ -402,7 +402,7 @@ class RoomSocketService:
             
             # 세션 매니저에서 방 나가기
             from src.core.session_manager import session_manager
-            await session_manager.leave_room(sid, profile_id, room_id)
+            await session_manager.leave_room(sid, profile_id)
             
             # 방 사용자 목록에서 제거 (기존 로직 유지)
             from src.core.socket.server import room_profiles, connected_profiles
