@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 class SocketMessageStrategyFactory:
     """Socket message strategy factory"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._strategies: Dict[SocketEventType, SocketMessageStrategy] = {}
         self._initialize_strategies()
     
-    def _initialize_strategies(self):
+    def _initialize_strategies(self) -> None:
         """Initialize strategies"""
         strategies = [
             AuthConnectStrategy(),
@@ -53,7 +53,7 @@ class SocketMessageStrategyFactory:
         logger.debug(f"Retrieved strategy for {event_type}: {strategy.__class__.__name__}")
         return strategy
     
-    def register_strategy(self, event_type: SocketEventType, strategy: SocketMessageStrategy):
+    def register_strategy(self, event_type: SocketEventType, strategy: SocketMessageStrategy) -> None:
         """Register new strategy"""
         self._strategies[event_type] = strategy
         logger.info(f"Registered new strategy for {event_type}: {strategy.__class__.__name__}")

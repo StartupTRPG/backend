@@ -5,7 +5,7 @@ from .factory import get_strategy_factory
 
 logger = logging.getLogger(__name__)
 
-def log_socket_message(level: str, message: str, **kwargs):
+def log_socket_message(level: str, message: str, **kwargs) -> None:
     """소켓 메시지 전용 로깅 함수"""
     colors = {
         'INFO': '\033[94m',      # 파란색
@@ -34,7 +34,7 @@ def log_socket_message(level: str, message: str, **kwargs):
 class SocketMessageHandler:
     """Socket message handler - uses strategy and factory patterns"""
     
-    def __init__(self, sio):
+    def __init__(self, sio) -> None:
         self.sio = sio
         self.strategy_factory = get_strategy_factory()
         logger.info(f"Socket message handler initialized with {len(self.strategy_factory.get_supported_event_types())} strategies")
@@ -67,12 +67,12 @@ class SocketMessageHandler:
             await self._send_error(sid, f"An error occurred while handling the message: {str(e)}")
             return None
     
-    async def _send_error(self, sid: str, message: str):
+    async def _send_error(self, sid: str, message: str) -> None:
         """Send error message"""
         log_socket_message('ERROR', '전송', event='error', sid=sid[:8], msg=message[:50])
         await self.sio.emit('error', {'message': message}, room=sid)
     
-    async def _send_success(self, sid: str, data: Dict[str, Any]):
+    async def _send_success(self, sid: str, data: Dict[str, Any]) -> None:
         """성공 메시지 전송"""
         log_socket_message('SUCCESS', '전송', event='success', sid=sid[:8], data=str(data)[:50])
         await self.sio.emit('success', data, room=sid)
@@ -81,7 +81,7 @@ class SocketMessageHandler:
         """지원하는 이벤트 타입 목록 반환"""
         return self.strategy_factory.get_supported_event_types()
     
-    def register_custom_strategy(self, event_type: SocketEventType, strategy):
+    def register_custom_strategy(self, event_type: SocketEventType, strategy) -> None:
         """사용자 정의 전략 등록"""
         self.strategy_factory.register_strategy(event_type, strategy)
         logger.info(f"Registered custom strategy for {event_type}")

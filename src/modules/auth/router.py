@@ -8,7 +8,6 @@ from src.modules.auth.dto import (
     RefreshResponse, LoginResponse, UserResponse, LogoutResponse, DeleteAccountResponse
 )
 from src.modules.profile.service import user_profile_service
-from src.modules.profile.models import UserProfileUpdate
 from src.core.jwt_utils import jwt_manager
 
 logger = logging.getLogger(__name__)

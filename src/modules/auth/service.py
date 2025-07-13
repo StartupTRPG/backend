@@ -2,7 +2,6 @@ import hashlib
 import logging
 from datetime import datetime
 from typing import Optional
-from bson import ObjectId
 from src.modules.user.dto import UserResponse
 from src.modules.auth.dto import TokenResponse
 from src.core.jwt_utils import jwt_manager

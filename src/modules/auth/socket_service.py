@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 from src.core.socket.models import AuthMessage, SocketEventType
-from src.modules.user.service import user_service
 
 logger = logging.getLogger(__name__)
 

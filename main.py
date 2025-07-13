@@ -4,16 +4,12 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from datetime import datetime
-from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response
 import uvicorn
 import logging
 import traceback
-import time
 import json
-import sys
 
 from src.core.mongodb import connect_to_mongo, close_mongo_connection, ping_database, get_collection
 from src.core.config import settings

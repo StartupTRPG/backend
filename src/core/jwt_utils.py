@@ -6,12 +6,13 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.core.config import settings
 import logging
 
+from src.modules.auth.dto import TokenPair
 from src.modules.user.models.user import User
 
 logger = logging.getLogger(__name__)
 
 class JWTManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.secret_key = settings.JWT_SECRET_KEY
         self.algorithm = settings.JWT_ALGORITHM
         self.access_token_expire_minutes = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
@@ -113,9 +114,8 @@ class JWTManager:
             logger.error(f"Failed to get room info from token: {str(e)}")
             return None
     
-    def create_token_pair(self, user_id: str, username: str):
+    def create_token_pair(self, user_id: str, username: str) -> TokenPair:
         """액세스 토큰과 리프레시 토큰 쌍 생성"""
-        from src.modules.auth.dto import TokenPair
         user_data = {
             "user_id": user_id,
             "username": username

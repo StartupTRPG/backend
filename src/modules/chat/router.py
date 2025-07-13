@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List
 from src.core.jwt_utils import get_current_user
 from src.modules.user.dto import UserResponse
 from .service import chat_service
-from .dto import RoomChatHistoryResponse, GetChatHistoryResponse, DeleteChatHistoryResponse
+from .dto import GetChatHistoryResponse, DeleteChatHistoryResponse
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 

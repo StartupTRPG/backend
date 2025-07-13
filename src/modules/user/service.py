@@ -2,10 +2,7 @@ import hashlib
 import secrets
 from datetime import datetime
 from typing import Optional, Tuple
-from bson import ObjectId
-from src.core.jwt_utils import jwt_manager
 from .dto import UserCreateRequest, UserLoginRequest, UserResponse
-from src.modules.auth.dto import TokenData
 from .repository import get_user_repository, UserRepository
 
 class UserService:
@@ -120,9 +117,11 @@ class UserService:
             last_login=user.last_login
         )
     
-    def create_tokens(self, user: UserResponse) -> TokenData:
+    def create_tokens(self, user: UserResponse):
         """토큰 쌍 생성"""
+        # 순환참조 방지를 위해 함수 내부에서 import
         from src.core.jwt_utils import jwt_manager
+        from src.modules.auth.dto import TokenData
         token_pair = jwt_manager.create_token_pair(user.id, user.username)
         return TokenData(**token_pair.model_dump(), user=user)
     

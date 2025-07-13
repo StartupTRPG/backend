@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 import logging
 from src.modules.chat.models import ChatMessage
 from src.modules.chat.enums import ChatType

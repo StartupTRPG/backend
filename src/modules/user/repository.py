@@ -1,8 +1,7 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Optional, List
 from src.core.repository import BaseRepository
 from .models import User, UserDocument
-from .dto import UserResponse
 from datetime import datetime
 
 class UserRepository(BaseRepository[User]):

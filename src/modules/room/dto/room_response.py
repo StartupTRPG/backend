@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from datetime import datetime
-from ..enums import RoomStatus, RoomVisibility, PlayerRole
+from ..enums import RoomStatus, RoomVisibility
 from .room_player_response import RoomPlayerResponse
 
 

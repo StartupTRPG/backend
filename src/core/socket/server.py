@@ -23,7 +23,7 @@ connected_profiles: Dict[str, Dict] = {}  # sid -> profile_info
 room_profiles: Dict[str, List[str]] = {}  # room_id -> [sid1, sid2, ...]
 
 # Socket.IO 앱 생성 함수
-def create_socketio_app(fastapi_app: FastAPI):
+def create_socketio_app(fastapi_app: FastAPI) -> socketio.ASGIApp:
     """FastAPI 앱에 Socket.IO를 통합"""
     # 통합 메시지 핸들러 생성
     message_handler = SocketMessageHandler(sio)
@@ -119,7 +119,7 @@ def create_socketio_app(fastapi_app: FastAPI):
     return socket_app
 
 # 유틸리티 함수들
-async def send_system_message(room_id: str, message: str):
+async def send_system_message(room_id: str, message: str) -> None:
     """시스템 메시지 전송"""
     from datetime import datetime
     await sio.emit('system_message', {
