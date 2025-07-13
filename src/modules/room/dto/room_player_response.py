@@ -7,6 +7,7 @@ class RoomPlayerResponse(BaseModel):
     """방 플레이어 응답 모델"""
     profile_id: str = Field(..., description="프로필 ID")
     display_name: str = Field(..., description="표시 이름")
+    avatar_url: str = Field(None, description="아바타 이미지 URL")
     role: PlayerRole = Field(..., description="플레이어 역할")
     joined_at: datetime = Field(..., description="참가 시간")
     

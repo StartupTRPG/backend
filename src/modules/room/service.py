@@ -15,6 +15,27 @@ class RoomService:
         self.room_repository = room_repository or get_room_repository()
         # self.player_repository = ... (추후 분리)
     
+    async def _get_players_with_profile(self, players) -> List[Dict]:
+        """플레이어 목록에 프로필 정보 추가"""
+        from .dto import RoomPlayerResponse
+        from src.modules.profile.service import user_profile_service
+        
+        players_with_profile = []
+        for player in players:
+            # 프로필 정보 조회
+            profile = await user_profile_service.get_profile_by_id(player.profile_id)
+            if profile:
+                player_response = RoomPlayerResponse(
+                    profile_id=player.profile_id,
+                    display_name=profile.display_name,
+                    avatar_url=profile.avatar_url,
+                    role=player.role,
+                    joined_at=player.joined_at
+                )
+                players_with_profile.append(player_response)
+        
+        return [player.model_dump() for player in players_with_profile]
+    
     async def create_room(self, room_data: RoomCreateRequest, host_user: UserResponse) -> RoomResponse:
         try:
             logger.info(f"Creating room '{room_data.title}' by user {host_user.username}")
@@ -35,7 +56,6 @@ class RoomService:
             # 호스트 플레이어 생성
             host_player = RoomPlayer(
                 profile_id=profile.id,
-                display_name=profile.display_name,
                 role=PlayerRole.HOST,
                 joined_at=now
             )
@@ -62,7 +82,7 @@ class RoomService:
             room_data_dict = room.model_dump()
             room_data_dict.update({
                 "current_players": room.current_players,
-                "players": [player.model_dump() for player in room.players]
+                "players": await self._get_players_with_profile(room.players)
             })
             
             return RoomResponse(**room_data_dict)
@@ -80,7 +100,7 @@ class RoomService:
             room_data_dict = room.model_dump()
             room_data_dict.update({
                 "current_players": room.current_players,
-                "players": [player.model_dump() for player in room.players]
+                "players": await self._get_players_with_profile(room.players)
             })
             
             return RoomResponse(**room_data_dict)
@@ -225,7 +245,6 @@ class RoomService:
             # 새 플레이어 생성
             new_player = RoomPlayer(
                 profile_id=profile.id,
-                display_name=profile.display_name,
                 role=PlayerRole.PLAYER,
                 joined_at=datetime.utcnow()
             )
@@ -314,7 +333,7 @@ class RoomService:
             room_data_dict = room.model_dump()
             room_data_dict.update({
                 "current_players": room.current_players,
-                "players": [player.model_dump() for player in room.players]
+                "players": await self._get_players_with_profile(room.players)
             })
             
             return RoomResponse(**room_data_dict)
@@ -347,7 +366,7 @@ class RoomService:
             room_data_dict = room.model_dump()
             room_data_dict.update({
                 "current_players": room.current_players,
-                "players": [player.model_dump() for player in room.players]
+                "players": await self._get_players_with_profile(room.players)
             })
             
             return RoomResponse(**room_data_dict)
