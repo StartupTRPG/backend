@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from src.modules.user.dto.user_response import UserResponse
 from .models import (
-    UserProfileCreate, UserProfileUpdate, UserProfileResponse, 
+    UserProfileUpdate, UserProfileResponse, 
     UserProfilePublicResponse, UserProfileDocument
 )
 from .repository import get_profile_repository, ProfileRepository
