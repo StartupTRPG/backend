@@ -49,7 +49,8 @@ class UserProfileService:
         except Exception as e:
             raise Exception(f"프로필 생성 중 오류가 발생했습니다: {str(e)}")
     
-    async def get_profile(self, user_id: str) -> Optional[UserProfileResponse]:
+    async def get_profile_by_user_id(self, user_id: str) -> Optional[UserProfileResponse]:
+        """사용자 ID로 프로필 조회 (인증 시스템용)"""
         try:
             profile = await self.profile_repository.find_by_user_id(user_id)
             if not profile:
@@ -68,7 +69,8 @@ class UserProfileService:
         except Exception:
             return None
     
-    async def get_public_profile(self, user_id: str) -> Optional[UserProfilePublicResponse]:
+    async def get_public_profile_by_user_id(self, user_id: str) -> Optional[UserProfilePublicResponse]:
+        """사용자 ID로 공개 프로필 조회 (인증 시스템용)"""
         try:
             profile = await self.profile_repository.find_by_user_id(user_id)
             if not profile:
@@ -85,7 +87,8 @@ class UserProfileService:
         except Exception:
             return None
     
-    async def update_profile(self, user_id: str, profile_data: UserProfileUpdate) -> Optional[UserProfileResponse]:
+    async def update_profile_by_user_id(self, user_id: str, profile_data: UserProfileUpdate) -> Optional[UserProfileResponse]:
+        """사용자 ID로 프로필 업데이트 (인증 시스템용)"""
         try:
             existing_profile = await self.profile_repository.find_by_user_id(user_id)
             if not existing_profile:
@@ -109,13 +112,14 @@ class UserProfileService:
             success = await self.profile_repository.update(existing_profile.id, update_fields)
             if not success:
                 return None
-            return await self.get_profile(user_id)
+            return await self.get_profile_by_user_id(user_id)
         except ValueError:
             raise
         except Exception as e:
             raise Exception(f"프로필 업데이트 중 오류가 발생했습니다: {str(e)}")
     
-    async def delete_profile(self, user_id: str) -> bool:
+    async def delete_profile_by_user_id(self, user_id: str) -> bool:
+        """사용자 ID로 프로필 삭제 (인증 시스템용)"""
         try:
             profile = await self.profile_repository.find_by_user_id(user_id)
             if not profile:
@@ -124,6 +128,44 @@ class UserProfileService:
         except Exception:
             return False
     
+    async def get_profile_by_id(self, profile_id: str) -> Optional[UserProfileResponse]:
+        """프로필 ID로 프로필 조회"""
+        try:
+            profile = await self.profile_repository.find_by_id(profile_id)
+            if not profile:
+                return None
+            return UserProfileResponse(
+                id=getattr(profile, 'id', None),
+                user_id=profile.user_id,
+                username=profile.username,
+                display_name=profile.display_name,
+                bio=profile.bio,
+                avatar_url=profile.avatar_url,
+                user_level=profile.user_level,
+                created_at=profile.created_at,
+                updated_at=profile.updated_at
+            )
+        except Exception:
+            return None
+
+    async def get_public_profile_by_id(self, profile_id: str) -> Optional[UserProfilePublicResponse]:
+        """프로필 ID로 공개 프로필 조회"""
+        try:
+            profile = await self.profile_repository.find_by_id(profile_id)
+            if not profile:
+                return None
+            return UserProfilePublicResponse(
+                user_id=profile.user_id,
+                username=profile.username,
+                display_name=profile.display_name,
+                bio=profile.bio,
+                avatar_url=profile.avatar_url,
+                user_level=profile.user_level,
+                created_at=profile.created_at
+            )
+        except Exception:
+            return None
+
     async def search_profiles(self, query: str, limit: int = 20) -> List[UserProfilePublicResponse]:
         try:
             search_filter = {
@@ -145,4 +187,4 @@ class UserProfileService:
         except Exception:
             return []
 
-user_profile_service = UserProfileService() 
+user_profile_service = UserProfileService()

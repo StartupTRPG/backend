@@ -23,13 +23,13 @@ class RoomMessage(BaseSocketMessage):
     """방 관련 메시지"""
     room_id: str
     password: Optional[str] = None
-    user_id: Optional[str] = None
+    profile_id: Optional[str] = None
     username: Optional[str] = None
 
 class ChatMessage(BaseSocketMessage):
     """채팅 메시지"""
     room_id: str
-    user_id: str
+    profile_id: str
     username: str
     display_name: str
     message: str

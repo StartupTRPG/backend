@@ -9,8 +9,8 @@ class Room(BaseModel):
     id: Optional[str] = None
     title: str
     description: Optional[str] = None
-    host_id: str
-    host_username: str
+    host_profile_id: str  # host_id 대신 host_profile_id 사용
+    host_display_name: str  # host_username 대신 host_display_name 사용
     max_players: int
     status: RoomStatus
     visibility: RoomVisibility
@@ -41,24 +41,24 @@ class Room(BaseModel):
         
         # 이미 있는 플레이어인지 확인
         for existing_player in self.players:
-            if existing_player.user_id == player.user_id:
+            if existing_player.profile_id == player.profile_id:
                 return False
         
         self.players.append(player)
         return True
     
-    def remove_player(self, user_id: str) -> bool:
-        """플레이어 제거"""
+    def remove_player_by_profile_id(self, profile_id: str) -> bool:
+        """플레이어 제거 (profile_id로)"""
         for i, player in enumerate(self.players):
-            if player.user_id == user_id:
+            if player.profile_id == profile_id:
                 self.players.pop(i)
                 return True
         return False
     
-    def get_player(self, user_id: str) -> Optional[RoomPlayer]:
-        """특정 플레이어 조회"""
+    def get_player_by_profile_id(self, profile_id: str) -> Optional[RoomPlayer]:
+        """특정 플레이어 조회 (profile_id로)"""
         for player in self.players:
-            if player.user_id == user_id:
+            if player.profile_id == profile_id:
                 return player
         return None
     

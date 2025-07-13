@@ -4,8 +4,8 @@ from ..enums import PlayerRole
 
 class RoomPlayer(BaseModel):
     """방 플레이어 데이터베이스 스키마"""
-    user_id: str
-    username: str
+    profile_id: str  # user_id 대신 profile_id 사용
+    display_name: str  # Profile에서 가져온 display_name
     role: PlayerRole
     joined_at: datetime
     is_host: bool = False  # 프로퍼티 대신 필드로 추가

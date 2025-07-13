@@ -16,6 +16,12 @@ class MongoProfileRepository(ProfileRepository):
         self._mongo_repo = MongoRepository("user_profiles", UserProfileDocument)
     async def find_by_id(self, id: str) -> Optional[UserProfileDocument]:
         # soft delete 적용: is_deleted=False 조건 추가
+        from bson import ObjectId
+        if isinstance(id, str):
+            try:
+                id = ObjectId(id)
+            except Exception:
+                pass
         return await self._mongo_repo.find_one({"_id": id, "is_deleted": False})
     async def find_one(self, filter_dict):
         # soft delete 적용: is_deleted=False 조건 추가

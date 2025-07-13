@@ -16,8 +16,8 @@ class ApiResponse(BaseModel, Generic[T]):
                     "id": "507f1f77bcf86cd799439011",
                     "title": "테스트 방",
                     "description": "테스트용 방입니다.",
-                    "host_id": "507f1f77bcf86cd799439012",
-                    "host_username": "testuser",
+                    "host_profile_id": "507f1f77bcf86cd799439012",
+                    "host_display_name": "testuser",
                     "max_players": 4,
                     "current_players": 2,
                     "status": "waiting",
@@ -27,8 +27,8 @@ class ApiResponse(BaseModel, Generic[T]):
                     "game_settings": {},
                     "players": [
                         {
-                            "user_id": "507f1f77bcf86cd799439012",
-                            "username": "testuser",
+                            "profile_id": "507f1f77bcf86cd799439012",
+                            "display_name": "testuser",
                             "role": "host",
                             "joined_at": "2024-01-01T00:00:00"
                         }

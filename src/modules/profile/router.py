@@ -55,7 +55,7 @@ async def get_my_profile(
 ):
     """내 프로필 조회"""
     try:
-        profile = await user_profile_service.get_profile(current_user.id)
+        profile = await user_profile_service.get_profile_by_user_id(current_user.id)
         if not profile:
             raise HTTPException(
                 status_code=404, 
@@ -78,7 +78,7 @@ async def update_my_profile(
 ):
     """내 프로필 수정"""
     try:
-        profile = await user_profile_service.update_profile(current_user.id, profile_data)
+        profile = await user_profile_service.update_profile_by_user_id(current_user.id, profile_data)
         if not profile:
             raise HTTPException(
                 status_code=404, 
@@ -94,19 +94,19 @@ async def update_my_profile(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/user/{user_id}", response_model=GetUserProfileResponse)
-async def get_user_profile(
-    user_id: str,
+@router.get("/{profile_id}", response_model=GetUserProfileResponse)
+async def get_profile_by_id(
+    profile_id: str,
     current_user: UserResponse = Depends(get_current_user)
 ):
-    """다른 사용자의 공개 프로필 조회 (인증된 유저만)"""
+    """프로필 ID로 공개 프로필 조회 (인증된 유저만)"""
     try:
-        profile = await user_profile_service.get_public_profile(user_id)
+        profile = await user_profile_service.get_public_profile_by_id(profile_id)
         if not profile:
             raise HTTPException(status_code=404, detail="Public profile not found.")
         return GetUserProfileResponse(
             data=profile,
-            message="User profile retrieved successfully.",
+            message="Profile retrieved successfully.",
             success=True
         )
     except HTTPException:

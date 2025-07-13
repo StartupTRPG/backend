@@ -15,15 +15,14 @@ class ChatService:
     async def save_message(
         self, 
         room_id: str, 
-        user_id: str, 
-        username: str, 
+        profile_id: str, 
         display_name: str, 
-        content: str, 
+        message: str, 
         message_type: ChatType = ChatType.LOBBY
     ) -> ChatMessageResponse:
         """Save chat message"""
         try:
-            logger.info(f"Saving message in room {room_id} by user {username}")
+            logger.info(f"Saving message in room {room_id} by profile {profile_id}")
             # room_id를 문자열로 저장
             from bson import ObjectId
             try:
@@ -34,27 +33,25 @@ class ChatService:
                 # 이미 문자열이면 그대로 사용
                 room_id_str = room_id
             
-            message = ChatMessage(
+            chat_message = ChatMessage(
                 id=None,
                 room_id=room_id_str,
-                user_id=user_id,
-                username=username,
+                profile_id=profile_id,
                 display_name=display_name,
                 message_type=message_type,
-                content=content,
+                message=message,
                 timestamp=datetime.utcnow()
             )
-            message_id = await self.chat_repository.create(message)
-            message.id = message_id
+            message_id = await self.chat_repository.create(chat_message)
+            chat_message.id = message_id
             return ChatMessageResponse(
-                id=message.id,
-                room_id=message.room_id,
-                user_id=user_id,
-                username=message.username,
-                display_name=message.display_name,
-                message_type=message.message_type,
-                message=message.content,
-                timestamp=message.timestamp
+                id=chat_message.id,
+                room_id=chat_message.room_id,
+                profile_id=chat_message.profile_id,
+                display_name=chat_message.display_name,
+                message_type=chat_message.message_type,
+                message=chat_message.message,
+                timestamp=chat_message.timestamp
             )
         except Exception as e:
             logger.error(f"Error saving message in room {room_id}: {str(e)}")
@@ -80,11 +77,10 @@ class ChatService:
                 messages=[ChatMessageResponse(
                     id=m.id,
                     room_id=m.room_id,
-                    user_id=getattr(m, 'user_id', m.username),  # 기존 메시지는 username을 user_id로 사용
-                    username=m.username,
+                    profile_id=m.profile_id, 
                     display_name=m.display_name,
                     message_type=m.message_type,
-                    message=m.content,
+                    message=m.message,
                     timestamp=m.timestamp
                 ) for m in messages],
                 total_count=total_count,
@@ -121,51 +117,46 @@ class ChatService:
             
             test_messages = [
                 {
-                    "user_id": "test_user_1",
-                    "username": "startup_master",
+                    "profile_id": "test_profile_1",
                     "display_name": "스타트업 마스터",
-                    "content": "안녕하세요! 스타트업 TRPG에 오신 것을 환영합니다!",
+                    "message": "안녕하세요! 스타트업 TRPG에 오신 것을 환영합니다!",
                     "message_type": ChatType.LOBBY
                 },
                 {
-                    "user_id": "test_user_2", 
-                    "username": "tech_enthusiast",
+                    "profile_id": "test_profile_2", 
                     "display_name": "기술 애호가",
-                    "content": "안녕하세요! 기대됩니다!",
+                    "message": "안녕하세요! 기대됩니다!",
                     "message_type": ChatType.LOBBY
                 },
                 {
-                    "user_id": "test_user_3",
-                    "username": "business_guru", 
+                    "profile_id": "test_profile_3",
                     "display_name": "비즈니스 구루",
-                    "content": "창업 아이디어를 구상해보죠!",
+                    "message": "창업 아이디어를 구상해보죠!",
                     "message_type": ChatType.LOBBY
                 }
             ]
             
             saved_messages = []
             for msg_data in test_messages:
-                message = ChatMessage(
+                chat_message = ChatMessage(
                     id=None,
                     room_id=room_id_str,
-                    user_id=msg_data["user_id"],
-                    username=msg_data["username"],
+                    profile_id=msg_data["profile_id"],
                     display_name=msg_data["display_name"],
                     message_type=msg_data["message_type"],
-                    content=msg_data["content"],
+                    message=msg_data["message"],
                     timestamp=datetime.utcnow()
                 )
-                message_id = await self.chat_repository.create(message)
-                message.id = message_id
+                message_id = await self.chat_repository.create(chat_message)
+                chat_message.id = message_id
                 saved_messages.append(ChatMessageResponse(
-                    id=message.id,
-                    room_id=message.room_id,
-                    user_id=message.user_id,
-                    username=message.username,
-                    display_name=message.display_name,
-                    message_type=message.message_type,
-                    message=message.content,
-                    timestamp=message.timestamp
+                    id=chat_message.id,
+                    room_id=chat_message.room_id,
+                    profile_id=chat_message.profile_id,
+                    display_name=chat_message.display_name,
+                    message_type=chat_message.message_type,
+                    message=chat_message.message,
+                    timestamp=chat_message.timestamp
                 ))
             
             logger.info(f"Created {len(saved_messages)} test messages for room {room_id}")

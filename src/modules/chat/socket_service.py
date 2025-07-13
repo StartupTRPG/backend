@@ -53,12 +53,18 @@ class ChatSocketService:
             # Encrypt message
             encrypted_message = encryption_service.encrypt_message(message)
             
+            # Profile 정보 조회
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile(session['user_id'])
+            if not profile:
+                await sio.emit('error', {'message': 'Profile not found. Please create a profile first.'}, room=sid)
+                return None
+            
             # Save message to database (in encrypted state)
             saved_message = await chat_service.save_message(
                 room_id=room_id,
-                user_id=session['user_id'],
-                username=session['username'],
-                display_name=session.get('display_name', session['username']),
+                profile_id=profile.id,
+                display_name=profile.display_name,
                 content=encrypted_message,
                 message_type=ChatType.LOBBY
             )
@@ -66,8 +72,7 @@ class ChatSocketService:
             # Real-time message (in decrypted state)
             message_data = {
                 'id': saved_message.id,
-                'user_id': saved_message.user_id,
-                'username': saved_message.username,
+                'profile_id': saved_message.profile_id,
                 'display_name': saved_message.display_name,
                 'message': message,  # Send original message
                 'timestamp': saved_message.timestamp.isoformat(),
@@ -83,9 +88,8 @@ class ChatSocketService:
             return ChatMessage(
                 event_type=SocketEventType.SEND_MESSAGE,
                 room_id=room_id,
-                user_id=session['user_id'],
-                username=session['username'],
-                display_name=session.get('display_name', session['username']),
+                profile_id=profile.id,
+                display_name=profile.display_name,
                 message=message,
                 message_type="text",
                 encrypted=True
@@ -121,8 +125,7 @@ class ChatSocketService:
                 
                 messages.append({
                     'id': msg.id,
-                    'user_id': msg.user_id,
-                    'username': msg.username,
+                    'profile_id': msg.profile_id,
                     'display_name': msg.display_name,
                     'message': decrypted_content,
                     'timestamp': msg.timestamp.isoformat(),

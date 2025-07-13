@@ -7,11 +7,10 @@ class ChatMessage(BaseModel):
     """Chat message database schema"""
     id: Optional[str] = None
     room_id: str
-    user_id: str
-    username: str
+    profile_id: str
     display_name: str
     message_type: ChatType
-    content: str  # Encrypted content is stored
+    message: str
     timestamp: datetime
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None

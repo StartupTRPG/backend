@@ -118,13 +118,18 @@ class LobbyMessageStrategy(SocketMessageStrategy):
             from datetime import datetime
             import time
             
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile_by_user_id(session['user_id'])
+            if not profile:
+                await sio.emit('error', {'message': 'Profile not found. Please create a profile first.'}, room=sid)
+                return None
+            
             # 메시지 데이터 구성
             current_time = datetime.utcnow()
             message_data = {
                 'id': f"lobby_{int(time.time() * 1000)}",
-                'user_id': session['user_id'],
-                'username': session['username'],
-                'display_name': session.get('display_name', session['username']),
+                'profile_id': profile.id,
+                'display_name': profile.display_name,
                 'message': message,
                 'timestamp': current_time.isoformat(),
                 'message_type': message_type,
@@ -134,19 +139,19 @@ class LobbyMessageStrategy(SocketMessageStrategy):
             # DB에 메시지 저장
             from src.modules.chat.service import chat_service
             from src.modules.chat.enum import ChatType
+            
             await chat_service.save_message(
                 room_id=room_id,
-                user_id=session['user_id'],
-                username=session['username'],
-                display_name=session.get('display_name', session['username']),
-                content=message,
+                profile_id=profile.id,
+                display_name=profile.display_name,
+                message=message,
                 message_type=ChatType.LOBBY
             )
             
             # 해당 방의 모든 사용자에게 브로드캐스트
             await sio.emit('lobby_message', message_data, room=room_id)
             
-            logger.info(f"Lobby message sent by {session['username']} in room {room_id}")
+            logger.info(f"Lobby message sent by {profile.display_name} in room {room_id}")
             
             from .interfaces import BaseSocketMessage
             return BaseSocketMessage(
@@ -154,8 +159,8 @@ class LobbyMessageStrategy(SocketMessageStrategy):
                 data={
                     'room_id': room_id,
                     'message': message,
-                    'user_id': session['user_id'],
-                    'username': session['username']
+                    'profile_id': profile.id,
+                    'display_name': profile.display_name
                 }
             )
             
@@ -196,13 +201,19 @@ class GameMessageStrategy(SocketMessageStrategy):
             from datetime import datetime
             import time
             
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile_by_user_id(session['user_id'])
+            if not profile:
+                await sio.emit('error', {'message': 'Profile not found. Please create a profile first.'}, room=sid)
+                return None
+            
             # 메시지 데이터 구성
             current_time = datetime.utcnow()
             message_data = {
                 'id': f"game_{int(time.time() * 1000)}",
-                'user_id': session['user_id'],
+                'profile_id': profile.id,
                 'username': session['username'],
-                'display_name': session.get('display_name', session['username']),
+                'display_name': profile.display_name,
                 'message': message,
                 'timestamp': current_time.isoformat(),
                 'message_type': message_type,
@@ -212,7 +223,7 @@ class GameMessageStrategy(SocketMessageStrategy):
             # 해당 방의 모든 사용자에게 브로드캐스트
             await sio.emit('game_message', message_data, room=room_id)
             
-            logger.info(f"Game message sent by {session['username']} in room {room_id}")
+            logger.info(f"Game message sent by {profile.display_name} in room {room_id}")
             
             from .interfaces import BaseSocketMessage
             return BaseSocketMessage(
@@ -220,7 +231,7 @@ class GameMessageStrategy(SocketMessageStrategy):
                 data={
                     'room_id': room_id,
                     'message': message,
-                    'user_id': session['user_id'],
+                    'profile_id': profile.id,
                     'username': session['username']
                 }
             )
@@ -263,7 +274,7 @@ class SystemMessageStrategy(SocketMessageStrategy):
             current_time = datetime.utcnow()
             message_data = {
                 'id': f"system_{int(time.time() * 1000)}",
-                'user_id': 'system',
+                'profile_id': 'system',
                 'username': 'System',
                 'display_name': 'System',
                 'message': message,

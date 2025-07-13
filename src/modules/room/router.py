@@ -89,7 +89,13 @@ async def get_my_room(
 ):
     """내가 참가한 방 조회"""
     try:
-        room = await room_service.get_user_room(current_user.id)
+        # 현재 사용자의 프로필 조회
+        from src.modules.profile.service import user_profile_service
+        profile = await user_profile_service.get_profile_by_user_id(current_user.id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="프로필을 찾을 수 없습니다.")
+        
+        room = await room_service.get_joined_room_by_profile_id(profile.id)
         if not room:
             raise HTTPException(status_code=404, detail="참가한 방이 없습니다.")
         return ApiResponse(

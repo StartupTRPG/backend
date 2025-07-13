@@ -27,8 +27,8 @@ class MongoChatRepository(ChatRepository):
         filter_dict = dict(filter_dict)
         filter_dict["is_deleted"] = False
         messages = await self._mongo_repo.find_many(filter_dict, skip, limit)
-        # user_id가 없는 메시지는 제외
-        return [msg for msg in messages if hasattr(msg, 'user_id') and msg.user_id]
+        # profile_id가 없는 메시지는 제외
+        return [msg for msg in messages if hasattr(msg, 'profile_id') and msg.profile_id]
     async def create(self, entity: ChatMessage) -> str:
         return await self._mongo_repo.create(entity)
     async def update(self, id: str, update_dict) -> bool:
@@ -63,8 +63,8 @@ class MongoChatRepository(ChatRepository):
         except:
             # 문자열로 조회
             messages = await self._mongo_repo.find_many({"room_id": room_id, "is_deleted": False}, skip, limit)
-        # user_id가 없는 메시지는 제외
-        return [msg for msg in messages if hasattr(msg, 'user_id') and msg.user_id]
+        # profile_id가 없는 메시지는 제외
+        return [msg for msg in messages if hasattr(msg, 'profile_id') and msg.profile_id]
 
 class ChatRepositoryFactory:
     _instance: Optional[ChatRepository] = None

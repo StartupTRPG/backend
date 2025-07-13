@@ -18,9 +18,9 @@ sio = socketio.AsyncServer(
     engineio_logger=True
 )
 
-# 연결된 사용자 관리 (전역 상태)
-connected_users: Dict[str, Dict] = {}  # sid -> user_info
-room_users: Dict[str, List[str]] = {}  # room_id -> [sid1, sid2, ...]
+# 연결된 프로필 관리 (전역 상태)
+connected_profiles: Dict[str, Dict] = {}  # sid -> profile_info
+room_profiles: Dict[str, List[str]] = {}  # room_id -> [sid1, sid2, ...]
 
 # Socket.IO 앱 생성 함수
 def create_socketio_app(fastapi_app: FastAPI):
@@ -109,13 +109,13 @@ async def send_system_message(room_id: str, message: str):
         'message_type': 'system'
     }, room=room_id)
 
-async def get_room_user_count(room_id: str) -> int:
-    """방의 현재 사용자 수 조회"""
-    return len(room_users.get(room_id, []))
+async def get_room_profile_count(room_id: str) -> int:
+    """방의 현재 프로필 수 조회"""
+    return len(room_profiles.get(room_id, []))
 
-async def is_user_in_room(user_id: str, room_id: str) -> bool:
-    """사용자가 특정 방에 있는지 확인"""
-    for sid, user_info in connected_users.items():
-        if user_info['user_id'] == user_id and user_info['current_room'] == room_id:
+async def is_profile_in_room(profile_id: str, room_id: str) -> bool:
+    """프로필이 특정 방에 있는지 확인"""
+    for sid, profile_info in connected_profiles.items():
+        if profile_info['profile_id'] == profile_id and profile_info['current_room'] == room_id:
             return True
     return False 

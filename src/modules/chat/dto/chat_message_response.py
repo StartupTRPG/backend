@@ -6,11 +6,10 @@ class ChatMessageResponse(BaseModel):
     """Chat message response DTO"""
     id: str
     room_id: str
-    user_id: str
-    username: str
+    profile_id: str
     display_name: str
     message_type: ChatType
-    message: str  # 복호화된 내용
+    message: str
     timestamp: datetime
     encrypted: bool = False
     

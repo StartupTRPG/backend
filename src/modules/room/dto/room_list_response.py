@@ -9,8 +9,8 @@ class RoomListResponse(BaseModel):
     id: str = Field(..., description="방 ID")
     title: str = Field(..., description="방 제목")
     description: str = Field(..., description="방 설명")
-    host_id: str = Field(..., description="호스트 사용자 ID")
-    host_username: str = Field(..., description="호스트 사용자명")
+    host_profile_id: str = Field(..., description="호스트 프로필 ID")
+    host_display_name: str = Field(..., description="호스트 표시 이름")
     max_players: int = Field(..., ge=4, le=6, description="최대 플레이어 수")
     current_players: int = Field(..., ge=1, description="현재 플레이어 수")
     status: RoomStatus = Field(..., description="방 상태 (waiting: 대기 중, playing: 게임 진행 중, finished: 게임 종료)")
@@ -25,8 +25,8 @@ class RoomListResponse(BaseModel):
                 "id": "507f1f77bcf86cd799439011",
                 "title": "스타트업 TRPG 방",
                 "description": "스타트업을 테마로 한 TRPG 게임입니다. 창업 아이디어를 구상하고 팀을 만들어보세요!",
-                "host_id": "507f1f77bcf86cd799439012",
-                "host_username": "startup_master",
+                "host_profile_id": "507f1f77bcf86cd799439012",
+                "host_display_name": "스타트업 마스터",
                 "max_players": 4,
                 "current_players": 2,
                 "status": "waiting",

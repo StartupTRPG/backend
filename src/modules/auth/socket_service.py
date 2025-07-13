@@ -59,7 +59,7 @@ class AuthSocketService:
     async def handle_disconnect(sio, sid: str, data: Dict[str, Any]) -> Optional[AuthMessage]:
         """연결 해제 처리"""
         try:
-            # 연결 해제 시 별도 세션/connected_users 관리 없음
+            # 연결 해제 시 별도 세션/connected_profiles 관리 없음
             return None
             
         except Exception as e:

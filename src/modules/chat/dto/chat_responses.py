@@ -18,18 +18,18 @@ class GetChatHistoryResponse(BaseModel):
                         {
                             "id": "507f1f77bcf86cd799439012",
                             "room_id": "507f1f77bcf86cd799439011",
-                            "user_id": "507f1f77bcf86cd799439013",
-                            "username": "startup_master",
-                            "content": "안녕하세요! 스타트업 TRPG에 오신 것을 환영합니다!",
+                            "profile_id": "507f1f77bcf86cd799439013",
+                            "display_name": "startup_master",
+                            "message": "안녕하세요! 스타트업 TRPG에 오신 것을 환영합니다!",
                             "message_type": "lobby",
                             "created_at": "2024-01-01T12:00:00"
                         },
                         {
                             "id": "507f1f77bcf86cd799439014",
                             "room_id": "507f1f77bcf86cd799439011",
-                            "user_id": "507f1f77bcf86cd799439015",
-                            "username": "tech_enthusiast",
-                            "content": "안녕하세요! 기대됩니다!",
+                            "profile_id": "507f1f77bcf86cd799439015",
+                            "display_name": "tech_enthusiast",
+                            "message": "안녕하세요! 기대됩니다!",
                             "message_type": "lobby",
                             "created_at": "2024-01-01T12:05:00"
                         }
