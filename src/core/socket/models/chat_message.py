@@ -1,4 +1,5 @@
 from .base_socket_message import BaseSocketMessage
+from src.modules.chat.enums import ChatType
 
 class ChatMessage(BaseSocketMessage):
     """Chat message"""
@@ -6,5 +7,5 @@ class ChatMessage(BaseSocketMessage):
     profile_id: str  
     display_name: str
     message: str
-    message_type: str = "text"
+    message_type: ChatType
     encrypted: bool = False 

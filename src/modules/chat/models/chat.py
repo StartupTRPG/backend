@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from src.modules.chat.enum import ChatType
+from src.modules.chat.enums import ChatType
 
 class ChatMessage(BaseModel):
     """Chat message database schema"""

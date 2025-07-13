@@ -144,7 +144,7 @@ class LobbyMessageStrategy(SocketMessageStrategy):
 
             # DB에 메시지 저장
             from src.modules.chat.service import chat_service
-            from src.modules.chat.enum import ChatType
+            from src.modules.chat.enums import ChatType
             
             logger.info(f"Saving message to DB - room_id: {room_id}, profile_id: {profile.id}, message: {message[:20]}")
             await chat_service.save_message(

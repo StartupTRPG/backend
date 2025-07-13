@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 import logging
 from src.modules.chat.models import ChatMessage
-from src.modules.chat.enum import ChatType
+from src.modules.chat.enums import ChatType
 from src.modules.chat.dto import ChatMessageResponse, RoomChatHistoryResponse
 from src.modules.chat.repository import get_chat_repository, ChatRepository
 

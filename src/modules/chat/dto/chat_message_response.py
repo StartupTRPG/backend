@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from src.modules.chat.enum import ChatType
+from src.modules.chat.enums import ChatType
 
 class ChatMessageResponse(BaseModel):
     """Chat message response DTO"""

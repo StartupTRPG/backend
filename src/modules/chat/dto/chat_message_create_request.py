@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from src.modules.chat.enum import ChatType
+from src.modules.chat.enums import ChatType
 
 class ChatMessageCreateRequest(BaseModel):
     """Chat message creation request DTO"""

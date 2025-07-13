@@ -1,9 +1,9 @@
 import logging
 from typing import Dict, Any, Optional
-from src.core.socket.models import ChatMessage, BaseSocketMessage, SocketEventType
+from src.core.socket.models import BaseSocketMessage, SocketEventType
 from src.core.encryption import encryption_service
 from src.modules.chat.service import chat_service
-from src.modules.chat.enum import ChatType
+from src.modules.chat.enums import ChatType
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class ChatSocketService:
     """Chat-related Socket event handling service"""
     
     @staticmethod
-    async def handle_send_message(sio, sid: str, session: Dict[str, Any], data: Dict[str, Any]) -> Optional[ChatMessage]:
+    async def handle_send_message(sio, sid: str, session: Dict[str, Any], data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
         """Handle chat message sending"""
         try:
             # Check room information from token
@@ -85,14 +85,16 @@ class ChatSocketService:
             
             logger.info(f"Encrypted message sent by {session['username']} in room {room_id}")
             
-            return ChatMessage(
+            return BaseSocketMessage(
                 event_type=SocketEventType.SEND_MESSAGE,
-                room_id=room_id,
-                profile_id=profile.id,
-                display_name=profile.display_name,
-                message=message,
-                message_type="text",
-                encrypted=True
+                data={
+                    'room_id': room_id,
+                    'profile_id': profile.id,
+                    'display_name': profile.display_name,
+                    'message': message,
+                    'message_type': ChatType.LOBBY,
+                    'encrypted': True
+                }
             )
             
         except Exception as e:
