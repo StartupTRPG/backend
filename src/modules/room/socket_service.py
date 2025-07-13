@@ -176,12 +176,23 @@ class RoomSocketService:
             from src.modules.room.repository import get_room_repository
             room_repo = get_room_repository()
             room = await room_repo.find_by_id(room_id)
+            
+            logger.info(f"Checking if profile {profile.id} is host in room {room_id}")
             if room:
                 player = room.get_player_by_profile_id(profile.id)
-                if player and player.role == PlayerRole.HOST:
-                    is_host = True
+                logger.info(f"Found player: {player}")
+                if player:
+                    logger.info(f"Player role: {player.role}, Profile ID: {player.profile_id}")
+                    if player.role == PlayerRole.HOST:
+                        is_host = True
+                        logger.info(f"Profile {profile.id} is HOST - will delete room {room_id}")
+                else:
+                    logger.warning(f"Player not found for profile {profile.id} in room {room_id}")
+            else:
+                logger.warning(f"Room {room_id} not found")
             
-            await room_service.remove_player_from_room_by_profile_id(room_id, profile_id)
+            success = await room_service.remove_player_from_room_by_profile_id(room_id, profile_id)
+            logger.info(f"Remove player result: {success}")
             
             # 호스트가 나가는 경우 방 삭제 알림
             if is_host:

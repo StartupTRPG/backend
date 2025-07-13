@@ -4,6 +4,7 @@ from .room_response import RoomResponse
 from .room_list_response import RoomListResponse
 from .room_join_request import RoomJoinRequest
 from .room_operation_response import RoomOperationData, RoomOperationResponse
+from .room_player_response import RoomPlayerResponse
 
 __all__ = [
     "RoomCreateRequest",
@@ -12,5 +13,6 @@ __all__ = [
     "RoomListResponse",
     "RoomJoinRequest",
     "RoomOperationData",
-    "RoomOperationResponse"
+    "RoomOperationResponse",
+    "RoomPlayerResponse"
 ] 

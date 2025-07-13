@@ -267,24 +267,32 @@ class RoomService:
     async def remove_player_from_room_by_profile_id(self, room_id: str, profile_id: str) -> bool:
         """방에서 플레이어 제거 (profile_id 기반)"""
         try:
+            logger.info(f"Removing player with profile_id {profile_id} from room {room_id}")
             room = await self.room_repository.find_by_id(room_id)
             if not room:
+                logger.warning(f"Room {room_id} not found")
                 return False
             
             # Profile 정보 조회
             from src.modules.profile.service import user_profile_service
             profile = await user_profile_service.get_profile_by_id(profile_id)
             if not profile:
+                logger.warning(f"Profile {profile_id} not found")
                 return False
             
+            logger.info(f"Found profile: {profile.display_name} (ID: {profile.id})")
             player = room.get_player_by_profile_id(profile.id)
             if not player:
+                logger.warning(f"Player not found in room for profile {profile.id}")
                 return False
+            
+            logger.info(f"Found player: role={player.role}, profile_id={player.profile_id}")
             
             # 호스트가 나가는 경우 방 삭제
             if player.role == PlayerRole.HOST:
-                logger.info(f"Host {player.display_name} is leaving room {room_id}. Deleting room.")
+                logger.info(f"Host {profile.display_name} is leaving room {room_id}. Deleting room.")
                 success = await self.room_repository.delete(room_id)
+                logger.info(f"Room deletion result: {success}")
                 return success
             
             # 일반 플레이어 제거
