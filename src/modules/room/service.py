@@ -241,9 +241,14 @@ class RoomService:
              if room.host_profile_id != profile.id:
                  raise ValueError("게임 종료는 호스트만 가능합니다.")
              
-             # 게임 상태를 WAITING으로 변경 (다시 입장 가능하도록)
+             # 모든 플레이어의 ready 상태를 false로 초기화
+             for player in room.players:
+                 player.ready = False
+             
+             # 게임 상태를 WAITING으로 변경하고 플레이어 ready 상태도 업데이트
              success = await self.room_repository.update(room_id, {
                  "status": RoomStatus.WAITING,
+                 "players": [player.model_dump() for player in room.players],
                  "updated_at": datetime.utcnow()
              })
              

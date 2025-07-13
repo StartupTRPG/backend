@@ -237,6 +237,7 @@ class RoomSocketService:
                 return None
 
             # 모든 유저에게 브로드캐스트
+            logger.info(f"Broadcasting finish_game event to room {room_id}")
             await sio.emit('finish_game', {
                 "room_id": room_id,
                 "host_profile_id": profile.id,
@@ -248,6 +249,7 @@ class RoomSocketService:
             # 브로드캐스트 로깅 추가
             from src.core.socket.handler import log_socket_message
             log_socket_message('SUCCESS', '브로드캐스트', event='finish_game', room=room_id, profile=profile.display_name)
+            logger.info(f"finish_game event broadcasted successfully to room {room_id}")
             
             return RoomMessage(
                 event_type=SocketEventType.FINISH_GAME,
