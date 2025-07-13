@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 class RoomService:
     def __init__(self, room_repository: RoomRepository = None):
         self.room_repository = room_repository or get_room_repository()
-        # self.player_repository = ... (추후 분리)
     
     async def _get_players_with_profile(self, players) -> List[Dict]:
         """플레이어 목록에 프로필 정보 추가"""
@@ -30,7 +29,8 @@ class RoomService:
                     display_name=profile.display_name,
                     avatar_url=profile.avatar_url,
                     role=player.role,
-                    joined_at=player.joined_at
+                    joined_at=player.joined_at,
+                    ready=player.ready
                 )
                 players_with_profile.append(player_response)
         
@@ -136,6 +136,21 @@ class RoomService:
         
         return room_list_responses
     
+    async def update_room(self, room_id: str, room_data: RoomUpdateRequest, user_id: str) -> Optional[RoomResponse]:
+        """방 정보 업데이트 (user_id 기반)"""
+        try:
+            # Profile 정보 조회
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile_by_user_id(user_id)
+            if not profile:
+                raise ValueError("Profile not found. Please create a profile first.")
+            
+            return await self.update_room_by_profile_id(room_id, room_data, profile.id)
+            
+        except Exception as e:
+            logger.error(f"Error updating room '{room_id}': {str(e)}")
+            raise
+
     async def update_room_by_profile_id(self, room_id: str, room_data: RoomUpdateRequest, profile_id: str) -> Optional[RoomResponse]:
         """방 정보 업데이트 (profile_id 기반)"""
         try:
@@ -209,7 +224,36 @@ class RoomService:
             logger.error(f"Error starting game in room '{room_id}': {str(e)}")
             raise
 
-    async def add_player_to_room_by_profile_id(self, room_id: str, profile_id: str, username: str) -> bool:
+    async def end_game_by_profile_id(self, room_id: str, profile_id: str) -> bool:
+         """게임 종료 (profile_id 기반)"""
+         try:
+             room = await self.room_repository.find_by_id(room_id)
+             if not room:
+                 return False
+             
+             # Profile 정보 조회
+             from src.modules.profile.service import user_profile_service
+             profile = await user_profile_service.get_profile_by_id(profile_id)
+             if not profile:
+                 raise ValueError("Profile not found. Please create a profile first.")
+             
+             # 호스트 권한 확인
+             if room.host_profile_id != profile.id:
+                 raise ValueError("게임 종료는 호스트만 가능합니다.")
+             
+             # 게임 상태를 WAITING으로 변경 (다시 입장 가능하도록)
+             success = await self.room_repository.update(room_id, {
+                 "status": RoomStatus.WAITING,
+                 "updated_at": datetime.utcnow()
+             })
+             
+             return success
+             
+         except Exception as e:
+             logger.error(f"Error ending game in room '{room_id}': {str(e)}")
+             raise
+
+    async def add_player_to_room_by_profile_id(self, room_id: str, profile_id: str) -> bool:
         """방에 플레이어 추가 (profile_id 기반)"""
         try:
             room = await self.room_repository.find_by_id(room_id)
@@ -309,19 +353,6 @@ class RoomService:
         except Exception as e:
             logger.error(f"Error removing player from room '{room_id}': {str(e)}")
             return False
-
-    async def get_room_players(self, room_id: str) -> List[RoomPlayer]:
-        """방 플레이어 목록 조회"""
-        try:
-            room = await self.room_repository.find_by_id(room_id)
-            if not room:
-                return []
-            
-            return room.players
-            
-        except Exception as e:
-            logger.error(f"Error getting players from room '{room_id}': {str(e)}")
-            return []
         
     async def get_joined_room_by_profile_id(self, profile_id: str) -> Optional[RoomResponse]:
         """프로필이 참가한 방 조회 (profile_id 기반)"""
@@ -349,69 +380,7 @@ class RoomService:
         except Exception as e:
             logger.error(f"Error getting user room for profile '{profile_id}': {str(e)}")
             return None
-
-    async def get_profile_room(self, profile_id: str) -> Optional[RoomResponse]:
-        """프로필이 참가한 방 조회"""
-        try:
-            # Profile 정보 조회
-            from src.modules.profile.service import user_profile_service
-            profile = await user_profile_service.get_profile_by_id(profile_id)
-            if not profile:
-                return None
-            
-            # 프로필이 플레이어로 참가한 방을 조회
-            filter_query = {
-                "players.profile_id": profile.id
-            }
-            rooms = await self.room_repository.find_many(filter_query, 0, 1)
-            
-            if not rooms:
-                return None
-            
-            room = rooms[0]
-            
-            # RoomResponse에 필요한 필드들을 추가하여 반환
-            room_data_dict = room.model_dump()
-            room_data_dict.update({
-                "current_players": room.current_players,
-                "players": await self._get_players_with_profile(room.players)
-            })
-            
-            return RoomResponse(**room_data_dict)
-            
-        except Exception as e:
-            logger.error(f"Error getting profile room for profile '{profile_id}': {str(e)}")
-            return None
     
-    async def end_game_by_profile_id(self, room_id: str, profile_id: str) -> bool:
-         """게임 종료 (profile_id 기반)"""
-         try:
-             room = await self.room_repository.find_by_id(room_id)
-             if not room:
-                 return False
-             
-             # Profile 정보 조회
-             from src.modules.profile.service import user_profile_service
-             profile = await user_profile_service.get_profile_by_id(profile_id)
-             if not profile:
-                 raise ValueError("Profile not found. Please create a profile first.")
-             
-             # 호스트 권한 확인
-             if room.host_profile_id != profile.id:
-                 raise ValueError("게임 종료는 호스트만 가능합니다.")
-             
-             # 게임 상태를 WAITING으로 변경 (다시 입장 가능하도록)
-             success = await self.room_repository.update(room_id, {
-                 "status": RoomStatus.WAITING,
-                 "updated_at": datetime.utcnow()
-             })
-             
-             return success
-             
-         except Exception as e:
-             logger.error(f"Error ending game in room '{room_id}': {str(e)}")
-             raise
-
     async def set_player_ready(self, room_id: str, profile_id: str, ready: bool) -> bool:
         """플레이어 레디 상태 변경 (호스트는 불가)"""
         room = await self.room_repository.find_by_id(room_id)

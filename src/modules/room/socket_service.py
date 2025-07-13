@@ -61,7 +61,7 @@ class RoomSocketService:
                 await RoomSocketService.handle_leave_room_internal(sio, sid, current_room)
             
             # 데이터베이스에 플레이어 추가
-            success = await room_service.add_player_to_room_by_profile_id(room_id, profile_id, username)
+            success = await room_service.add_player_to_room_by_profile_id(room_id, profile_id)
             if not success:
                 await sio.emit('error', {'message': 'Failed to join room.'}, room=sid)
                 return None
@@ -155,7 +155,117 @@ class RoomSocketService:
             return None
     
     @staticmethod
-    async def handle_ready(sio, sid: str, session: dict, data: dict):
+    async def handle_start_game(sio, sid: str, session: dict, data: dict) -> Optional[RoomMessage]:
+        """
+        게임 시작 처리
+        data: { "room_id": str }
+        """
+        try:
+            room_id = data.get("room_id")
+            if not room_id:
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
+                return None
+                
+            user_id = session["user_id"]
+
+            # 프로필 조회
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile_by_user_id(user_id)
+            if not profile:
+                await sio.emit('error', {'message': 'Profile not found.'}, room=sid)
+                return None
+
+            # 게임 시작
+            success = await room_service.start_game_by_profile_id(room_id, profile.id)
+            if not success:
+                await sio.emit('error', {'message': '게임 시작에 실패했습니다.'}, room=sid)
+                return None
+
+            # 모든 유저에게 브로드캐스트
+            await sio.emit('start_game', {
+                "room_id": room_id,
+                "host_profile_id": profile.id,
+                "host_display_name": profile.display_name,
+                "message": f"{profile.display_name}님이 게임을 시작했습니다.",
+                "timestamp": datetime.utcnow().isoformat()
+            }, room=room_id)
+            
+            # 브로드캐스트 로깅 추가
+            from src.core.socket.handler import log_socket_message
+            log_socket_message('SUCCESS', '브로드캐스트', event='start_game', room=room_id, profile=profile.display_name)
+            
+            return RoomMessage(
+                event_type=SocketEventType.START_GAME,
+                room_id=room_id,
+                host_profile_id=profile.id,
+                host_display_name=profile.display_name,
+                username=session['username']
+            )
+            
+        except ValueError as e:
+            await sio.emit('error', {'message': str(e)}, room=sid)
+            return None
+        except Exception as e:
+            await sio.emit('error', {'message': f'게임 시작 중 오류: {str(e)}'}, room=sid)
+            return None
+
+    @staticmethod
+    async def handle_finish_game(sio, sid: str, session: dict, data: dict) -> Optional[RoomMessage]:
+        """
+        게임 종료 처리
+        data: { "room_id": str }
+        """
+        try:
+            room_id = data.get("room_id")
+            if not room_id:
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
+                return None
+                
+            user_id = session["user_id"]
+
+            # 프로필 조회
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile_by_user_id(user_id)
+            if not profile:
+                await sio.emit('error', {'message': 'Profile not found.'}, room=sid)
+                return None
+
+            # 게임 종료
+            success = await room_service.end_game_by_profile_id(room_id, profile.id)
+            if not success:
+                await sio.emit('error', {'message': '게임 종료에 실패했습니다.'}, room=sid)
+                return None
+
+            # 모든 유저에게 브로드캐스트
+            await sio.emit('finish_game', {
+                "room_id": room_id,
+                "host_profile_id": profile.id,
+                "host_display_name": profile.display_name,
+                "message": f"{profile.display_name}님이 게임을 종료했습니다.",
+                "timestamp": datetime.utcnow().isoformat()
+            }, room=room_id)
+            
+            # 브로드캐스트 로깅 추가
+            from src.core.socket.handler import log_socket_message
+            log_socket_message('SUCCESS', '브로드캐스트', event='finish_game', room=room_id, profile=profile.display_name)
+            
+            return RoomMessage(
+                event_type=SocketEventType.FINISH_GAME,
+                room_id=room_id,
+                host_profile_id=profile.id,
+                host_display_name=profile.display_name,
+                username=session['username']
+            )
+            
+        except ValueError as e:
+            await sio.emit('error', {'message': str(e)}, room=sid)
+            return None
+        except Exception as e:
+            await sio.emit('error', {'message': f'게임 종료 중 오류: {str(e)}'}, room=sid)
+            return None
+    
+    @staticmethod
+    async def handle_ready(sio, sid: str, session: dict, data: dict) -> Optional[RoomMessage]:
         """
         플레이어 레디/언레디 처리
         data: { "room_id": str, "ready": bool }
@@ -170,13 +280,13 @@ class RoomSocketService:
             profile = await user_profile_service.get_profile_by_user_id(user_id)
             if not profile:
                 await sio.emit('error', {'message': 'Profile not found.'}, room=sid)
-                return
+                return None
 
             # 레디 상태 변경
             success = await room_service.set_player_ready(room_id, profile.id, ready)
             if not success:
                 await sio.emit('error', {'message': 'Ready 상태 변경 실패.'}, room=sid)
-                return
+                return None
 
             # 방 전체 레디 상태 확인
             all_ready = await room_service.is_all_ready(room_id)
@@ -192,8 +302,16 @@ class RoomSocketService:
             # 브로드캐스트 로깅 추가
             from src.core.socket.handler import log_socket_message
             log_socket_message('SUCCESS', '브로드캐스트', event='ready', room=room_id, profile=profile.display_name, ready=ready, all_ready=all_ready)
+            
+            return RoomMessage(
+                event_type=SocketEventType.READY,
+                room_id=room_id,
+                profile_id=profile.id,
+                username=session['username']
+            )
         except Exception as e:
             await sio.emit('error', {'message': f'레디 처리 중 오류: {str(e)}'}, room=sid)
+            return None
     
     @staticmethod
     async def handle_leave_room_internal(sio, sid: str, room_id: str):
@@ -282,22 +400,22 @@ class RoomSocketService:
             
             # 세션 매니저에서 방 나가기
             from src.core.session_manager import session_manager
-            await session_manager.leave_room(sid, profile_id)
+            await session_manager.leave_room(sid, profile_id, room_id)
             
-            # 방 사용자 목록 업데이트 (기존 로직 유지)
+            # 방 사용자 목록에서 제거 (기존 로직 유지)
             from src.core.socket.server import room_profiles, connected_profiles
             if room_id in room_profiles and sid in room_profiles[room_id]:
                 room_profiles[room_id].remove(sid)
                 if not room_profiles[room_id]:
                     del room_profiles[room_id]
             
-            # 연결된 프로필 정보 업데이트
             if sid in connected_profiles:
                 connected_profiles[sid]['current_room'] = None
             
             logger.info(f"Profile {profile.display_name} left room {room_id}")
             
         except Exception as e:
-            logger.error(f"Leave room internal error: {str(e)}")
+            logger.error(f"Leave room internal error for {sid}: {str(e)}")
+            await sio.emit('error', {'message': 'An error occurred while leaving the room.'}, room=sid)
     
  

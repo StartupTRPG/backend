@@ -72,6 +72,16 @@ def create_socketio_app(fastapi_app: FastAPI):
         """플레이어 레디/언레디 이벤트"""
         await message_handler.handle_message(SocketEventType.READY, sid, data)
     
+    @sio.event
+    async def start_game(sid, data):
+        """게임 시작 이벤트"""
+        await message_handler.handle_message(SocketEventType.START_GAME, sid, data)
+    
+    @sio.event
+    async def finish_game(sid, data):
+        """게임 종료 이벤트"""
+        await message_handler.handle_message(SocketEventType.FINISH_GAME, sid, data)
+    
 
     
     @sio.event

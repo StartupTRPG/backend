@@ -12,6 +12,10 @@ class SocketEventType(str, Enum):
     LEAVE_ROOM = "leave_room"
     ROOM_DELETED = "room_deleted"
     
+    # 게임 관련
+    START_GAME = "start_game"
+    FINISH_GAME = "finish_game"
+    
     # 채팅 관련
     LOBBY_MESSAGE = "lobby_message"
     SYSTEM_MESSAGE = "system_message"

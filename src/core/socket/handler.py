@@ -41,7 +41,7 @@ class SocketMessageHandler:
     
     async def handle_message(self, event_type: SocketEventType, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
         """Handle message - applies strategy pattern"""
-        log_socket_message('INFO', '수신', event=event_type, sid=sid[:8])
+        log_socket_message('INFO', '수신', event=event_type, sid=sid[:8], data=str(data)[:100])
         
         try:
             strategy = self.strategy_factory.get_strategy(event_type)
