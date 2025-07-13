@@ -1,13 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import List
 from src.modules.user.dto import UserResponse
 from src.modules.user.service import user_service
 from src.core.jwt_utils import jwt_manager
 from .service import user_profile_service
-from .models import UserProfileCreate, UserProfileUpdate, UserProfileResponse, UserProfilePublicResponse
+from .models import UserProfileUpdate
 from .dto import (
-    CreateProfileResponse, GetProfileResponse, UpdateProfileResponse,
+    GetProfileResponse, UpdateProfileResponse,
     GetUserProfileResponse, SearchProfilesResponse
 )
 

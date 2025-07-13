@@ -25,13 +25,19 @@ from src.core.socket import create_socketio_app
 
 # Logging configuration
 logging.basicConfig(
-    level=logging.DEBUG,  # Set to DEBUG level to output all logs
+    level=logging.INFO,  # INFO 레벨로 변경하여 불필요한 DEBUG 로그 제거
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
         logging.FileHandler("app.log", encoding="utf-8")
     ]
 )
+
+# 특정 모듈의 로그 레벨 조정
+logging.getLogger('engineio.server').setLevel(logging.WARNING)
+logging.getLogger('socketio.server').setLevel(logging.WARNING)
+logging.getLogger('uvicorn').setLevel(logging.WARNING)
+logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -262,7 +268,7 @@ if __name__ == "__main__":
         socket_app,  # Socket.IO가 통합된 앱 사용
         host="0.0.0.0",
         port=8000,
-        log_level="debug",  # DEBUG 레벨로 설정
+        log_level="info",
         access_log=True,
         use_colors=True
     )

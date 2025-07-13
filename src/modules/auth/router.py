@@ -4,11 +4,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.modules.user.service import user_service
 from src.modules.user.dto import UserCreateRequest, UserLoginRequest
 from src.modules.auth.dto import (
-    TokenData, RefreshTokenRequest, RegisterData, RegisterResponse, 
+    RegisterData, RegisterResponse, 
     RefreshResponse, LoginResponse, UserResponse, LogoutResponse, DeleteAccountResponse
 )
 from src.modules.profile.service import user_profile_service
-from src.modules.profile.models import UserProfileCreate
+from src.modules.profile.models import UserProfileUpdate
 from src.core.jwt_utils import jwt_manager
 
 logger = logging.getLogger(__name__)
@@ -24,11 +24,6 @@ async def register(user_data: UserCreateRequest):
         
         # 기본 프로필 자동 생성
         try:
-            default_profile = UserProfileCreate(
-                display_name=user.username,
-                bio=f"안녕하세요! {user.username}입니다.",
-                user_level=1
-            )
             await user_profile_service.create_new_profile(user)
         except Exception as e:
             # 프로필 생성 실패는 로그만 남기고 회원가입은 계속 진행

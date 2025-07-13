@@ -5,6 +5,32 @@ from .factory import get_strategy_factory
 
 logger = logging.getLogger(__name__)
 
+def log_socket_message(level: str, message: str, **kwargs):
+    """소켓 메시지 전용 로깅 함수"""
+    colors = {
+        'INFO': '\033[94m',      # 파란색
+        'SUCCESS': '\033[92m',   # 초록색
+        'WARNING': '\033[93m',   # 노란색
+        'ERROR': '\033[91m',     # 빨간색
+    }
+    
+    color = colors.get(level, '')
+    reset = '\033[0m'
+    
+    # 한 줄로 모든 정보 정리
+    if kwargs:
+        details = " ".join([f"{k}={v}" for k, v in kwargs.items()])
+        log_msg = f"{color}[SOCKET] {message} {details}{reset}"
+    else:
+        log_msg = f"{color}[SOCKET] {message}{reset}"
+    
+    if level == 'ERROR':
+        logger.error(log_msg)
+    elif level == 'WARNING':
+        logger.warning(log_msg)
+    else:
+        logger.info(log_msg)
+
 class SocketMessageHandler:
     """Socket message handler - uses strategy and factory patterns"""
     
@@ -15,25 +41,26 @@ class SocketMessageHandler:
     
     async def handle_message(self, event_type: SocketEventType, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
         """Handle message - applies strategy pattern"""
+        log_socket_message('INFO', '수신', event=event_type, sid=sid[:8])
+        
         try:
-            # Get appropriate strategy from factory
             strategy = self.strategy_factory.get_strategy(event_type)
             if not strategy:
-                logger.error(f"No strategy found for event type: {event_type}")
+                log_socket_message('ERROR', '지원하지 않는 이벤트', event=event_type)
                 await self._send_error(sid, f"Unsupported event type: {event_type}")
                 return None
             
-            # Process message through strategy (session validation handled inside strategy)
-            logger.debug(f"Processing {event_type} with strategy: {strategy.__class__.__name__}")
             result = await strategy.handle(self.sio, sid, data)
             
             if result:
-                logger.info(f"Successfully processed {event_type} for sid: {sid}")
+                log_socket_message('SUCCESS', '완료', event=event_type, sid=sid[:8])
+            else:
+                log_socket_message('WARNING', '실패', event=event_type, sid=sid[:8])
             
             return result
             
         except Exception as e:
-            logger.error(f"Message handling error for {event_type}: {str(e)}")
+            log_socket_message('ERROR', '오류', event=event_type, sid=sid[:8], error=str(e)[:30])
             await self._send_error(sid, "An error occurred while handling the message.")
             return None
     

@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins="*",  # 개발 환경에서는 모든 origin 허용
-    logger=True,
-    engineio_logger=True
+    logger=False,  # Socket.IO 로거 비활성화
+    engineio_logger=False  # Engine.IO 로거 비활성화
 )
 
 # 연결된 프로필 관리 (전역 상태)
