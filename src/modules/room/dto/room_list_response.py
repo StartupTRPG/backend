@@ -13,7 +13,7 @@ class RoomListResponse(BaseModel):
     host_username: str = Field(..., description="호스트 사용자명")
     max_players: int = Field(..., ge=4, le=6, description="최대 플레이어 수")
     current_players: int = Field(..., ge=1, description="현재 플레이어 수")
-    status: RoomStatus = Field(..., description="방 상태")
+    status: RoomStatus = Field(..., description="방 상태 (waiting: 대기 중, playing: 게임 진행 중, finished: 게임 종료)")
     visibility: RoomVisibility = Field(..., description="방 공개 설정")
     created_at: datetime = Field(..., description="생성 시간")
     updated_at: datetime = Field(..., description="수정 시간")

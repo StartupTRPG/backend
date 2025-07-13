@@ -30,6 +30,11 @@ class RoomSocketService:
                 await sio.emit('error', {'message': 'Room is full.'}, room=sid)
                 return None
             
+            # 게임 진행 중인지 확인
+            if room.status == 'playing':
+                await sio.emit('error', {'message': 'Cannot join room while game is in progress.'}, room=sid)
+                return None
+            
             # 방 입장 처리
             user_id = session['user_id']
             username = session['username']

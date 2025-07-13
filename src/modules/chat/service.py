@@ -24,9 +24,19 @@ class ChatService:
         """Save chat message"""
         try:
             logger.info(f"Saving message in room {room_id} by user {username}")
+            # room_id를 문자열로 저장
+            from bson import ObjectId
+            try:
+                # ObjectId로 변환 시도 후 문자열로 저장
+                object_id = ObjectId(room_id)
+                room_id_str = str(object_id)
+            except:
+                # 이미 문자열이면 그대로 사용
+                room_id_str = room_id
+            
             message = ChatMessage(
                 id=None,
-                room_id=room_id,
+                room_id=room_id_str,
                 user_id=user_id,
                 username=username,
                 display_name=display_name,
@@ -94,6 +104,75 @@ class ChatService:
             return 0
         except Exception as e:
             logger.error(f"Error deleting messages for room {room_id}: {str(e)}")
+            raise
+
+    async def create_test_messages(self, room_id: str) -> List[ChatMessageResponse]:
+        """테스트용 더미 메시지 생성"""
+        try:
+            # room_id를 문자열로 저장
+            from bson import ObjectId
+            try:
+                # ObjectId로 변환 시도 후 문자열로 저장
+                object_id = ObjectId(room_id)
+                room_id_str = str(object_id)
+            except:
+                # 이미 문자열이면 그대로 사용
+                room_id_str = room_id
+            
+            test_messages = [
+                {
+                    "user_id": "test_user_1",
+                    "username": "startup_master",
+                    "display_name": "스타트업 마스터",
+                    "content": "안녕하세요! 스타트업 TRPG에 오신 것을 환영합니다!",
+                    "message_type": ChatType.LOBBY
+                },
+                {
+                    "user_id": "test_user_2", 
+                    "username": "tech_enthusiast",
+                    "display_name": "기술 애호가",
+                    "content": "안녕하세요! 기대됩니다!",
+                    "message_type": ChatType.LOBBY
+                },
+                {
+                    "user_id": "test_user_3",
+                    "username": "business_guru", 
+                    "display_name": "비즈니스 구루",
+                    "content": "창업 아이디어를 구상해보죠!",
+                    "message_type": ChatType.LOBBY
+                }
+            ]
+            
+            saved_messages = []
+            for msg_data in test_messages:
+                message = ChatMessage(
+                    id=None,
+                    room_id=room_id_str,
+                    user_id=msg_data["user_id"],
+                    username=msg_data["username"],
+                    display_name=msg_data["display_name"],
+                    message_type=msg_data["message_type"],
+                    content=msg_data["content"],
+                    timestamp=datetime.utcnow()
+                )
+                message_id = await self.chat_repository.create(message)
+                message.id = message_id
+                saved_messages.append(ChatMessageResponse(
+                    id=message.id,
+                    room_id=message.room_id,
+                    user_id=message.user_id,
+                    username=message.username,
+                    display_name=message.display_name,
+                    message_type=message.message_type,
+                    message=message.content,
+                    timestamp=message.timestamp
+                ))
+            
+            logger.info(f"Created {len(saved_messages)} test messages for room {room_id}")
+            return saved_messages
+            
+        except Exception as e:
+            logger.error(f"Error creating test messages for room {room_id}: {str(e)}")
             raise
 
 chat_service = ChatService() 

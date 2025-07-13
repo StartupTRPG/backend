@@ -62,6 +62,7 @@ async def list_rooms(
     search: Optional[str] = Query(None, description="검색어 (제목, 설명)"),
     page: int = Query(1, ge=1, description="페이지 번호"),
     limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수"),
+    exclude_playing: bool = Query(True, description="게임 진행 중인 방 제외 여부"),
     current_user: UserResponse = Depends(get_current_user)
 ):
     """방 목록 조회 (인증된 유저만)"""
@@ -71,7 +72,8 @@ async def list_rooms(
             visibility=visibility,
             search=search,
             page=page,
-            limit=limit
+            limit=limit,
+            exclude_playing=exclude_playing
         )
         return ApiResponse(
             data=rooms,

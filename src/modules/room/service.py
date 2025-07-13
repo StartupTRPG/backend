@@ -81,7 +81,7 @@ class RoomService:
         except Exception:
             return None
     
-    async def list_rooms(self, status: Optional[RoomStatus] = None, visibility: Optional[RoomVisibility] = None, search: Optional[str] = None, page: int = 1, limit: int = 20) -> List[RoomListResponse]:
+    async def list_rooms(self, status: Optional[RoomStatus] = None, visibility: Optional[RoomVisibility] = None, search: Optional[str] = None, page: int = 1, limit: int = 20, exclude_playing: bool = True) -> List[RoomListResponse]:
         filter_query = {}
         if status:
             filter_query["status"] = status
@@ -92,6 +92,11 @@ class RoomService:
                 {"title": {"$regex": search, "$options": "i"}},
                 {"description": {"$regex": search, "$options": "i"}}
             ]
+        
+        # 게임 진행 중인 방 제외 (기본값)
+        if exclude_playing:
+            filter_query["status"] = {"$ne": RoomStatus.PLAYING}
+        
         skip = (page - 1) * limit
         rooms = await self.room_repository.find_many(filter_query, skip, limit)
         
@@ -175,6 +180,11 @@ class RoomService:
         try:
             room = await self.room_repository.find_by_id(room_id)
             if not room:
+                return False
+            
+            # 게임 진행 중인지 확인
+            if room.status == RoomStatus.PLAYING:
+                logger.warning(f"Player {username} tried to join room {room_id} while game is in progress")
                 return False
             
             # 방이 가득 찼는지 확인
@@ -285,17 +295,26 @@ class RoomService:
             return None
     
     async def end_game(self, room_id: str, user_id: str) -> bool:
-         # 게임 종료 로직 구현
-         # 예: 방 상태를 FINISHED로 변경
-         room = await self.room_repository.find_by_id(room_id)
-         if not room:
-             return False
-         if room.host_id != user_id:
-             raise ValueError("Only host can end the game.")
-         success = await self.room_repository.update(room_id, {
-             "status": RoomStatus.FINISHED,
-             "updated_at": datetime.utcnow()
-         })
-         return success
+         """게임 종료 (호스트만)"""
+         try:
+             room = await self.room_repository.find_by_id(room_id)
+             if not room:
+                 return False
+             
+             # 호스트 권한 확인
+             if room.host_id != user_id:
+                 raise ValueError("게임 종료는 호스트만 가능합니다.")
+             
+             # 게임 상태를 WAITING으로 변경 (다시 입장 가능하도록)
+             success = await self.room_repository.update(room_id, {
+                 "status": RoomStatus.WAITING,
+                 "updated_at": datetime.utcnow()
+             })
+             
+             return success
+             
+         except Exception as e:
+             logger.error(f"Error ending game in room '{room_id}': {str(e)}")
+             raise
 
 room_service = RoomService() 

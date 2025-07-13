@@ -130,6 +130,18 @@ class LobbyMessageStrategy(SocketMessageStrategy):
                 'message_type': message_type,
                 'encrypted': False
             }
+
+            # DB에 메시지 저장
+            from src.modules.chat.service import chat_service
+            from src.modules.chat.enum import ChatType
+            await chat_service.save_message(
+                room_id=room_id,
+                user_id=session['user_id'],
+                username=session['username'],
+                display_name=session.get('display_name', session['username']),
+                content=message,
+                message_type=ChatType.LOBBY
+            )
             
             # 해당 방의 모든 사용자에게 브로드캐스트
             await sio.emit('lobby_message', message_data, room=room_id)

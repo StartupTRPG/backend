@@ -26,7 +26,9 @@ class MongoChatRepository(ChatRepository):
         # Apply soft delete: add is_deleted=False condition
         filter_dict = dict(filter_dict)
         filter_dict["is_deleted"] = False
-        return await self._mongo_repo.find_many(filter_dict, skip, limit)
+        messages = await self._mongo_repo.find_many(filter_dict, skip, limit)
+        # user_id가 없는 메시지는 제외
+        return [msg for msg in messages if hasattr(msg, 'user_id') and msg.user_id]
     async def create(self, entity: ChatMessage) -> str:
         return await self._mongo_repo.create(entity)
     async def update(self, id: str, update_dict) -> bool:
@@ -37,10 +39,32 @@ class MongoChatRepository(ChatRepository):
     async def count(self, filter_dict) -> int:
         filter_dict = dict(filter_dict)
         filter_dict["is_deleted"] = False
+        
+        # room_id가 ObjectId일 수 있으므로 문자열로 변환하여 조회
+        if "room_id" in filter_dict:
+            from bson import ObjectId
+            try:
+                # ObjectId로 변환 시도
+                object_id = ObjectId(filter_dict["room_id"])
+                filter_dict["room_id"] = str(object_id)
+            except:
+                # 이미 문자열이면 그대로 사용
+                pass
+        
         return await self._mongo_repo.count(filter_dict)
     async def find_by_room_id(self, room_id: str, skip: int = 0, limit: int = 0) -> List[ChatMessage]:
         # Apply soft delete: add is_deleted=False condition
-        return await self._mongo_repo.find_many({"room_id": room_id, "is_deleted": False}, skip, limit)
+        # room_id가 ObjectId일 수 있으므로 문자열로 변환하여 조회
+        from bson import ObjectId
+        try:
+            # ObjectId로 변환 시도
+            object_id = ObjectId(room_id)
+            messages = await self._mongo_repo.find_many({"room_id": str(object_id), "is_deleted": False}, skip, limit)
+        except:
+            # 문자열로 조회
+            messages = await self._mongo_repo.find_many({"room_id": room_id, "is_deleted": False}, skip, limit)
+        # user_id가 없는 메시지는 제외
+        return [msg for msg in messages if hasattr(msg, 'user_id') and msg.user_id]
 
 class ChatRepositoryFactory:
     _instance: Optional[ChatRepository] = None
