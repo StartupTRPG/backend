@@ -29,7 +29,7 @@ async def register(user_data: UserCreateRequest):
                 bio=f"안녕하세요! {user.username}입니다.",
                 user_level=1
             )
-            await user_profile_service.create_profile(user, default_profile)
+            await user_profile_service.create_new_profile(user)
         except Exception as e:
             # 프로필 생성 실패는 로그만 남기고 회원가입은 계속 진행
             print(f"프로필 생성 실패: {e}")

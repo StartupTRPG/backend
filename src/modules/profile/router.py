@@ -31,23 +31,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error occurred while retrieving user info.")
 
-@router.post("", response_model=CreateProfileResponse)
-async def create_profile(
-    profile_data: UserProfileCreate,
-    current_user: UserResponse = Depends(get_current_user)
-):
-    """사용자 프로필 생성"""
-    try:
-        profile = await user_profile_service.create_profile(current_user, profile_data)
-        return CreateProfileResponse(
-            data=profile,
-            message="Profile created successfully.",
-            success=True
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/me", response_model=GetProfileResponse)
 async def get_my_profile(

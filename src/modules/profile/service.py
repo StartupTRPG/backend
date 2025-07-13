@@ -6,29 +6,40 @@ from .models import (
     UserProfilePublicResponse, UserProfileDocument
 )
 from .repository import get_profile_repository, ProfileRepository
+import random
+import string
 
 class UserProfileService:
     def __init__(self, profile_repository: ProfileRepository = None):
         self.profile_repository = profile_repository or get_profile_repository()
     
-    async def create_profile(self, user: UserResponse, profile_data: UserProfileCreate) -> UserProfileResponse:
+    async def create_new_profile(self, user: UserResponse) -> UserProfileResponse:
         try:
             # 이미 프로필이 있는지 확인
             existing_profile = await self.profile_repository.find_by_user_id(user.id)
             if existing_profile:
                 raise ValueError("이미 프로필이 존재합니다.")
-            # 표시 이름 중복 확인
-            display_name_exists = await self.profile_repository.find_one({"display_name": profile_data.display_name})
-            if display_name_exists:
-                raise ValueError("이미 사용 중인 표시 이름입니다.")
+            
+            # 표시 이름 자동 생성 (user_8자리랜덤숫자 형태)
+            rand = ''.join(random.choices(string.digits, k=8))
+            display_name = f"user_{rand}"
+            
+            # 표시 이름 중복 확인 및 재생성
+            while True:
+                display_name_exists = await self.profile_repository.find_one({"display_name": display_name})
+                if not display_name_exists:
+                    break
+                rand = ''.join(random.choices(string.digits, k=8))
+                display_name = f"user_{rand}"
+            
             # 프로필 엔티티 생성
             profile = UserProfileDocument(
                 user_id=user.id,
                 username=user.username,
-                display_name=profile_data.display_name,
-                bio=profile_data.bio,
-                avatar_url=profile_data.avatar_url,
-                user_level=profile_data.user_level,
+                display_name=display_name,
+                bio=f"안녕하세요! {display_name}입니다.",
+                avatar_url="",
+                user_level=1,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()
             )
