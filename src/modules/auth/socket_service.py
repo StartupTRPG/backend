@@ -14,15 +14,36 @@ class AuthSocketService:
         """연결 처리"""
         try:
             from src.core.jwt_utils import jwt_manager
+            
+            # 이미 연결된 세션이 있는지 확인
+            existing_session = await sio.get_session(sid)
+            if existing_session:
+                logger.info(f"Session already exists for {sid}, ignoring duplicate connect")
+                return AuthMessage(
+                    event_type=SocketEventType.CONNECT,
+                    token=existing_session.get('access_token'),
+                    user_id=existing_session.get('user_id'),
+                    username=existing_session.get('username')
+                )
+            
             token = data.get('token')
             if not token:
+                logger.warning(f"No token provided for connection {sid}")
                 await sio.emit('connect_failed', {'message': 'Token is required.'}, room=sid)
                 await sio.disconnect(sid)
                 return None
             
+            logger.info(f"Verifying token for connection {sid}")
             payload = jwt_manager.verify_token(token)
-            if not payload or payload.get("type") != "access":
-                await sio.emit('connect_failed', {'message': 'Invalid token.'}, room=sid)
+            if not payload:
+                logger.warning(f"Token verification failed for {sid} - token is invalid or expired")
+                await sio.emit('connect_failed', {'message': 'Invalid or expired token.'}, room=sid)
+                await sio.disconnect(sid)
+                return None
+            
+            if payload.get("type") != "access":
+                logger.warning(f"Wrong token type for {sid}: {payload.get('type')}")
+                await sio.emit('connect_failed', {'message': 'Invalid token type.'}, room=sid)
                 await sio.disconnect(sid)
                 return None
             

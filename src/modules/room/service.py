@@ -150,7 +150,7 @@ class RoomService:
         except Exception as e:
             logger.error(f"Error updating room '{room_id}': {str(e)}")
             raise
-
+    
     async def update_room_by_profile_id(self, room_id: str, room_data: RoomUpdateRequest, profile_id: str) -> Optional[RoomResponse]:
         """방 정보 업데이트 (profile_id 기반)"""
         try:
@@ -256,7 +256,7 @@ class RoomService:
              
          except Exception as e:
              logger.error(f"Error ending game in room '{room_id}': {str(e)}")
-             raise
+             raise ValueError(f"Error ending game in room '{room_id}': {str(e)}")
 
     async def add_player_to_room_by_profile_id(self, room_id: str, profile_id: str) -> bool:
         """방에 플레이어 추가 (profile_id 기반)"""

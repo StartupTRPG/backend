@@ -6,6 +6,7 @@ class SocketEventType(str, Enum):
     CONNECT = "connect"
     DISCONNECT = "disconnect"
     CONNECT_SUCCESS = "connect_success"
+    CONNECT_FAILED = "connect_failed"
     
     # 방 관련
     JOIN_ROOM = "join_room"

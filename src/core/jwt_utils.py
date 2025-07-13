@@ -37,7 +37,14 @@ class JWTManager:
         """토큰 검증"""
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            logger.info(f"Token verified successfully for user_id: {payload.get('user_id')}")
             return payload
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid token: {e}")
+            return None
         except Exception as e:
             logger.error(f"토큰 검증 중 오류가 발생했습니다: {e}")
             return None

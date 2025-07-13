@@ -381,14 +381,14 @@ class SystemMessageStrategy(SocketMessageStrategy):
             return None
     
     def get_event_type(self) -> SocketEventType:
-        return SocketEventType.SYSTEM_MESSAGE
+        return SocketEventType.SYSTEM_MESSAGE 
 
 class ReadyStrategy(SocketMessageStrategy):
     """Ready status handling strategy"""
     
     def get_event_type(self) -> SocketEventType:
         return SocketEventType.READY
-    
+
     async def handle(self, sio, sid, data):
         # Session validation required
         session = await self._validate_session(sio, sid)

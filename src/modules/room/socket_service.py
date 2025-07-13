@@ -22,7 +22,8 @@ class RoomSocketService:
             # 방 존재 확인
             room = await room_service.get_room(room_id)
             if not room:
-                await sio.emit('error', {'message': 'Room not found.'}, room=sid)
+                logger.warning(f"Room {room_id} not found for user {user_id}")
+                await sio.emit('error', {'message': 'Room not found or has been deleted.'}, room=sid)
                 return None
             
             # 방 최대 인원 확인 (새로운 Room 모델 구조 사용)
@@ -48,6 +49,17 @@ class RoomSocketService:
             
             profile_id = profile.id
             
+            # 이미 같은 방에 있는지 확인
+            current_room = session.get('current_room')
+            if current_room == room_id:
+                logger.info(f"User {user_id} already in room {room_id}, ignoring duplicate join")
+                return RoomMessage(
+                    event_type=SocketEventType.JOIN_ROOM,
+                    room_id=room_id,
+                    profile_id=profile_id,
+                    username=username
+                )
+            
             # 세션 매니저를 통한 방 입장 (여러 방 접속 방지)
             from src.core.session_manager import session_manager
             room_joined = await session_manager.join_room(sid, profile_id, room_id)
@@ -60,11 +72,12 @@ class RoomSocketService:
             if current_room and current_room != room_id:
                 await RoomSocketService.handle_leave_room_internal(sio, sid, current_room)
             
-            # 데이터베이스에 플레이어 추가
+            # 데이터베이스에 플레이어 추가 (이미 있는 경우 무시)
             success = await room_service.add_player_to_room_by_profile_id(room_id, profile_id)
             if not success:
-                await sio.emit('error', {'message': 'Failed to join room.'}, room=sid)
-                return None
+                # 이미 방에 있는 경우는 성공으로 처리
+                logger.info(f"Player {profile_id} already in room {room_id}, continuing with join process")
+                # 성공으로 처리하고 계속 진행
             
             # Socket.IO 방에 입장
             await sio.enter_room(sid, room_id)
@@ -81,9 +94,16 @@ class RoomSocketService:
             from src.core.socket.handler import log_socket_message
             log_socket_message('SUCCESS', '브로드캐스트', event='join_room', room=room_id, profile=profile.display_name)
             
-            # 세션 업데이트
-            session['current_room'] = room_id
-            await sio.save_session(sid, session)
+            # 세션 완전 재설정 (방 입장 시)
+            new_session = {
+                'user_id': session['user_id'],
+                'username': session['username'],
+                'access_token': session.get('access_token'),
+                'current_room': room_id,
+                'connected_at': session.get('connected_at', datetime.utcnow().isoformat()),
+                'room_joined_at': datetime.utcnow().isoformat()
+            }
+            await sio.save_session(sid, new_session)
             
             # 방 사용자 목록 업데이트 (기존 로직 유지)
             from src.core.socket.server import room_profiles, connected_profiles
@@ -273,20 +293,48 @@ class RoomSocketService:
         data: { "room_id": str, "ready": bool }
         """
         try:
+            # 세션 검증
+            if not session:
+                logger.error(f"No session found for {sid}")
+                await sio.emit('error', {'message': 'Session not found. Please reconnect.'}, room=sid)
+                return None
+            
+            user_id = session.get("user_id")
+            if not user_id:
+                logger.error(f"No user_id in session for {sid}")
+                await sio.emit('error', {'message': 'User not authenticated. Please login again.'}, room=sid)
+                return None
+            
+            # 데이터 검증
             room_id = data.get("room_id")
+            if not room_id:
+                logger.error(f"No room_id provided for {sid}")
+                await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
+                return None
+            
             ready = data.get("ready", False)
-            user_id = session["user_id"]
 
             # 프로필 조회
             from src.modules.profile.service import user_profile_service
             profile = await user_profile_service.get_profile_by_user_id(user_id)
             if not profile:
-                await sio.emit('error', {'message': 'Profile not found.'}, room=sid)
+                logger.error(f"Profile not found for user_id: {user_id}")
+                await sio.emit('error', {'message': 'Profile not found. Please create a profile first.'}, room=sid)
+                return None
+
+            # 방 존재 여부 확인
+            from src.modules.room.repository import get_room_repository
+            room_repo = get_room_repository()
+            room = await room_repo.find_by_id(room_id)
+            if not room:
+                logger.error(f"Room not found: {room_id}")
+                await sio.emit('error', {'message': 'Room not found.'}, room=sid)
                 return None
 
             # 레디 상태 변경
             success = await room_service.set_player_ready(room_id, profile.id, ready)
             if not success:
+                logger.error(f"Failed to set ready status for profile {profile.id} in room {room_id}")
                 await sio.emit('error', {'message': 'Ready 상태 변경 실패.'}, room=sid)
                 return None
 
@@ -388,17 +436,23 @@ class RoomSocketService:
             # Socket.IO 방에서 나가기
             await sio.leave_room(sid, room_id)
             
-            # 세션 업데이트 (토큰에서 방 정보 제거)
-            session['current_room'] = None
+            # 세션 완전 정리 (방 나가기 시)
+            cleaned_session = {
+                'user_id': session['user_id'],
+                'username': session['username'],
+                'access_token': session.get('access_token'),
+                'current_room': None,
+                'connected_at': session.get('connected_at', datetime.utcnow().isoformat())
+            }
             
             # 토큰에서 방 정보 제거
             from src.core.jwt_utils import jwt_manager
             current_token = session.get('access_token')
             if current_token:
                 updated_token = jwt_manager.remove_room_info_from_token(current_token)
-                session['access_token'] = updated_token
+                cleaned_session['access_token'] = updated_token
             
-            await sio.save_session(sid, session)
+            await sio.save_session(sid, cleaned_session)
             
             # 세션 매니저에서 방 나가기
             from src.core.session_manager import session_manager

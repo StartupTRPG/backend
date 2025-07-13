@@ -60,8 +60,11 @@ class SocketMessageHandler:
             return result
             
         except Exception as e:
-            log_socket_message('ERROR', '오류', event=event_type, sid=sid[:8], error=str(e)[:30])
-            await self._send_error(sid, "An error occurred while handling the message.")
+            import traceback
+            error_traceback = traceback.format_exc()
+            log_socket_message('ERROR', '오류', event=event_type, sid=sid[:8], error=str(e))
+            logger.error(f"Full error traceback for {event_type}: {error_traceback}")
+            await self._send_error(sid, f"An error occurred while handling the message: {str(e)}")
             return None
     
     async def _send_error(self, sid: str, message: str):
