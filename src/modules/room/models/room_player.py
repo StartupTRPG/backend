@@ -8,12 +8,14 @@ class RoomPlayer(BaseModel):
     role: PlayerRole
     joined_at: datetime
     is_host: bool = False  # 프로퍼티 대신 필드로 추가
+    ready: bool = False  # ← 추가
     
     def __init__(self, **data):
         super().__init__(**data)
         # role이 HOST인 경우 is_host를 True로 설정
         if self.role == PlayerRole.HOST:
             self.is_host = True
+            self.ready = False  # 호스트는 항상 레디 불가
     
     class Config:
         from_attributes = True 

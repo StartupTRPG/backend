@@ -77,6 +77,10 @@ class RoomSocketService:
                 'timestamp': datetime.utcnow().isoformat()
             }, room=room_id)
             
+            # 브로드캐스트 로깅 추가
+            from src.core.socket.handler import log_socket_message
+            log_socket_message('SUCCESS', '브로드캐스트', event='join_room', room=room_id, profile=profile.display_name)
+            
             # 세션 업데이트
             session['current_room'] = room_id
             await sio.save_session(sid, session)
@@ -151,6 +155,47 @@ class RoomSocketService:
             return None
     
     @staticmethod
+    async def handle_ready(sio, sid: str, session: dict, data: dict):
+        """
+        플레이어 레디/언레디 처리
+        data: { "room_id": str, "ready": bool }
+        """
+        try:
+            room_id = data.get("room_id")
+            ready = data.get("ready", False)
+            user_id = session["user_id"]
+
+            # 프로필 조회
+            from src.modules.profile.service import user_profile_service
+            profile = await user_profile_service.get_profile_by_user_id(user_id)
+            if not profile:
+                await sio.emit('error', {'message': 'Profile not found.'}, room=sid)
+                return
+
+            # 레디 상태 변경
+            success = await room_service.set_player_ready(room_id, profile.id, ready)
+            if not success:
+                await sio.emit('error', {'message': 'Ready 상태 변경 실패.'}, room=sid)
+                return
+
+            # 방 전체 레디 상태 확인
+            all_ready = await room_service.is_all_ready(room_id)
+
+            # 모든 유저에게 브로드캐스트
+            await sio.emit('ready', {
+                "room_id": room_id,
+                "profile_id": profile.id,
+                "ready": ready,
+                "all_ready": all_ready
+            }, room=room_id)
+            
+            # 브로드캐스트 로깅 추가
+            from src.core.socket.handler import log_socket_message
+            log_socket_message('SUCCESS', '브로드캐스트', event='ready', room=room_id, profile=profile.display_name, ready=ready, all_ready=all_ready)
+        except Exception as e:
+            await sio.emit('error', {'message': f'레디 처리 중 오류: {str(e)}'}, room=sid)
+    
+    @staticmethod
     async def handle_leave_room_internal(sio, sid: str, room_id: str):
         """내부 방 나가기 처리"""
         try:
@@ -201,6 +246,10 @@ class RoomSocketService:
                     'message': f'Room has been deleted by host {profile.display_name}.',
                     'timestamp': datetime.utcnow().isoformat()
                 }, room=room_id)
+                
+                # 브로드캐스트 로깅 추가
+                from src.core.socket.handler import log_socket_message
+                log_socket_message('WARNING', '브로드캐스트', event='room_deleted', room=room_id, profile=profile.display_name)
             else:
                 # 일반 사용자 나가기
                 await sio.emit('leave_room', {
@@ -211,6 +260,10 @@ class RoomSocketService:
                     'message': f'{profile.display_name} has left.',
                     'timestamp': datetime.utcnow().isoformat()
                 }, room=room_id)
+                
+                # 브로드캐스트 로깅 추가
+                from src.core.socket.handler import log_socket_message
+                log_socket_message('SUCCESS', '브로드캐스트', event='leave_room', room=room_id, profile=profile.display_name)
             
             # Socket.IO 방에서 나가기
             await sio.leave_room(sid, room_id)

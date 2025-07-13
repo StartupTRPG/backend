@@ -19,4 +19,5 @@ class SocketEventType(str, Enum):
     
     # 공통
     ERROR = "error"
-    FORCE_DISCONNECT = "force_disconnect" 
+    FORCE_DISCONNECT = "force_disconnect"
+    READY = "ready"  # 플레이어 레디/언레디 

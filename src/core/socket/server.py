@@ -45,6 +45,10 @@ def create_socketio_app(fastapi_app: FastAPI):
             from src.core.session_manager import session_manager
             await session_manager.update_session_activity(sid)
             await sio.emit('pong', {'timestamp': datetime.utcnow().isoformat()}, room=sid)
+            
+            # pong 전송 로깅 추가
+            from .handler import log_socket_message
+            log_socket_message('INFO', '전송', event='pong', sid=sid[:8])
         except Exception as e:
             logger.error(f"Ping error: {str(e)}")
     
@@ -62,6 +66,11 @@ def create_socketio_app(fastapi_app: FastAPI):
     async def leave_room(sid, data):
         """방 나가기 이벤트"""
         await message_handler.handle_message(SocketEventType.LEAVE_ROOM, sid, data)
+    
+    @sio.event
+    async def ready(sid, data):
+        """플레이어 레디/언레디 이벤트"""
+        await message_handler.handle_message(SocketEventType.READY, sid, data)
     
 
     
@@ -108,6 +117,10 @@ async def send_system_message(room_id: str, message: str):
         'timestamp': datetime.utcnow().isoformat(),
         'message_type': 'system'
     }, room=room_id)
+    
+    # 시스템 메시지 전송 로깅 추가
+    from .handler import log_socket_message
+    log_socket_message('INFO', '전송', event='system_message', room=room_id, msg=message[:30])
 
 async def get_room_profile_count(room_id: str) -> int:
     """방의 현재 프로필 수 조회"""

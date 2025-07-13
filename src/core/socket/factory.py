@@ -9,7 +9,8 @@ from .strategy import (
     RoomLeaveStrategy,
     LobbyMessageStrategy,
     GameMessageStrategy,
-    SystemMessageStrategy
+    SystemMessageStrategy,
+    ReadyStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,8 @@ class SocketMessageStrategyFactory:
             RoomLeaveStrategy(),
             LobbyMessageStrategy(),
             GameMessageStrategy(),
-            SystemMessageStrategy()
+            SystemMessageStrategy(),
+            ReadyStrategy(),
         ]
         
         for strategy in strategies:

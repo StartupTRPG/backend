@@ -412,4 +412,26 @@ class RoomService:
              logger.error(f"Error ending game in room '{room_id}': {str(e)}")
              raise
 
+    async def set_player_ready(self, room_id: str, profile_id: str, ready: bool) -> bool:
+        """플레이어 레디 상태 변경 (호스트는 불가)"""
+        room = await self.room_repository.find_by_id(room_id)
+        if not room:
+            return False
+        player = room.get_player_by_profile_id(profile_id)
+        if not player or player.role == PlayerRole.HOST:
+            return False
+        player.ready = ready
+        await self.room_repository.update(room_id, {"players": [p.model_dump() for p in room.players]})
+        return True
+
+    async def is_all_ready(self, room_id: str) -> bool:
+        """호스트 제외 모든 플레이어가 레디인지 확인"""
+        room = await self.room_repository.find_by_id(room_id)
+        if not room:
+            return False
+        for player in room.players:
+            if player.role != PlayerRole.HOST and not player.ready:
+                return False
+        return True
+
 room_service = RoomService() 

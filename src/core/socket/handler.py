@@ -66,10 +66,12 @@ class SocketMessageHandler:
     
     async def _send_error(self, sid: str, message: str):
         """Send error message"""
+        log_socket_message('ERROR', '전송', event='error', sid=sid[:8], msg=message[:50])
         await self.sio.emit('error', {'message': message}, room=sid)
     
     async def _send_success(self, sid: str, data: Dict[str, Any]):
         """성공 메시지 전송"""
+        log_socket_message('SUCCESS', '전송', event='success', sid=sid[:8], data=str(data)[:50])
         await self.sio.emit('success', data, room=sid)
     
     def get_supported_event_types(self) -> list[SocketEventType]:
