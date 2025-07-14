@@ -16,15 +16,35 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          # 프로젝트 디렉토리 생성 (없다면)
-          mkdir -p /app/startup-trpg/backend
-          cd /app/startup-trpg/backend
+          # Git 설치
+          sudo apt-get update
+          sudo apt-get install -y git curl
+          
+          # 현재 사용자의 홈 디렉토리 확인
+          HOME_DIR=$(echo $HOME)
+          echo "홈 디렉토리: $HOME_DIR"
+          
+          # 홈 디렉토리에 프로젝트 생성
+          mkdir -p $HOME_DIR/startup-trpg-backend
+          cd $HOME_DIR/startup-trpg-backend
           
           # Git 저장소가 없다면 clone, 있다면 pull
           if [ ! -d ".git" ]; then
             git clone https://github.com/${{ github.repository }}.git .
           else
             git pull origin main
+          fi
+          
+          # Docker 설치 확인
+          if ! command -v docker &> /dev/null; then
+            echo "Docker가 설치되지 않았습니다. Docker를 먼저 설치해주세요."
+            exit 1
+          fi
+          
+          # Docker Compose 설치 확인
+          if ! command -v docker-compose &> /dev/null; then
+            echo "Docker Compose가 설치되지 않았습니다. Docker Compose를 먼저 설치해주세요."
+            exit 1
           fi
           
           # 배포 실행
