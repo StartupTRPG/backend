@@ -9,9 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -19,6 +16,17 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          cd /app/frontend
-          chmod +x ./deploy.sh
+          # 프로젝트 디렉토리 생성 (없다면)
+          mkdir -p /app/startup-trpg/backend
+          cd /app/startup-trpg/backend
+          
+          # Git 저장소가 없다면 clone, 있다면 pull
+          if [ ! -d ".git" ]; then
+            git clone https://github.com/${{ github.repository }}.git .
+          else
+            git pull origin main
+          fi
+          
+          # 배포 실행
+          chmod +x deploy.sh
           ./deploy.sh
