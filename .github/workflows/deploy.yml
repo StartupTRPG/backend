@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -16,9 +19,9 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          # Git 설치
-          sudo apt-get update
-          sudo apt-get install -y git curl
+          # Git 설치 (Amazon Linux 2용)
+          sudo yum update -y
+          sudo yum install -y git curl
           
           # 현재 사용자의 홈 디렉토리 확인
           HOME_DIR=$(echo $HOME)
@@ -30,7 +33,7 @@ jobs:
           
           # Git 저장소가 없다면 clone, 있다면 pull
           if [ ! -d ".git" ]; then
-            git clone https://github.com/${{ github.repository }}.git .
+            git clone https://github.com/StartupTRPG/backend.git .
           else
             git pull origin main
           fi
@@ -47,6 +50,14 @@ jobs:
             exit 1
           fi
           
-          # 배포 실행
-          chmod +x deploy.sh
-          ./deploy.sh
+          # deploy.sh가 있는지 확인하고 실행
+          if [ -f "deploy.sh" ]; then
+            chmod +x deploy.sh
+            ./deploy.sh
+          else
+            echo "deploy.sh 파일이 없습니다. 수동으로 배포합니다."
+            # 기본 배포 명령어
+            docker-compose down
+            docker-compose build --no-cache
+            docker-compose up -d
+          fi
