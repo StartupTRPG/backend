@@ -30,8 +30,6 @@ class Settings(BaseSettings):
     # 로깅 설정
     LOG_LEVEL: str
     
-    # GEMINI API 설정
-    GEMINI_API_KEY: str    
     class Config:
         env_file = ".env"
         case_sensitive = True
