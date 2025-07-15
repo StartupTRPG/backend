@@ -397,3 +397,130 @@ class ReadyStrategy(SocketMessageStrategy):
         
         from src.modules.room.socket_service import RoomSocketService
         return await RoomSocketService.handle_ready(sio, sid, session, data) 
+
+# LLM 게임 관련 전략들
+class CreateGameStrategy(SocketMessageStrategy):
+    """게임 생성 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_create_game(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CREATE_GAME
+
+class CreateContextStrategy(SocketMessageStrategy):
+    """컨텍스트 생성 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_create_context(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CREATE_CONTEXT
+
+class CreateAgendaStrategy(SocketMessageStrategy):
+    """아젠다 생성 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_create_agenda(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CREATE_AGENDA
+
+class CreateTaskStrategy(SocketMessageStrategy):
+    """태스크 생성 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_create_task(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CREATE_TASK
+
+class CreateOvertimeStrategy(SocketMessageStrategy):
+    """오버타임 생성 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_create_overtime(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CREATE_OVERTIME
+
+class UpdateContextStrategy(SocketMessageStrategy):
+    """컨텍스트 업데이트 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_update_context(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.UPDATE_CONTEXT
+
+class CreateExplanationStrategy(SocketMessageStrategy):
+    """설명 생성 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_create_explanation(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CREATE_EXPLANATION
+
+class CalculateResultStrategy(SocketMessageStrategy):
+    """결과 계산 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_calculate_result(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.CALCULATE_RESULT
+
+class GetGameProgressStrategy(SocketMessageStrategy):
+    """게임 진행 상황 조회 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        session = await self._validate_session(sio, sid)
+        if not session:
+            return None
+        
+        from src.modules.game.socket_service import GameSocketService
+        return await GameSocketService.handle_get_game_progress(sio, sid, session, data)
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.GET_GAME_PROGRESS 

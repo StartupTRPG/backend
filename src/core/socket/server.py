@@ -82,7 +82,51 @@ def create_socketio_app(fastapi_app: FastAPI) -> socketio.ASGIApp:
         """게임 종료 이벤트"""
         await message_handler.handle_message(SocketEventType.FINISH_GAME, sid, data)
     
-
+    # LLM 게임 관련 이벤트 핸들러들
+    @sio.event
+    async def create_game(sid, data):
+        """LLM 게임 생성 이벤트"""
+        await message_handler.handle_message(SocketEventType.CREATE_GAME, sid, data)
+    
+    @sio.event
+    async def create_context(sid, data):
+        """컨텍스트 생성 이벤트"""
+        await message_handler.handle_message(SocketEventType.CREATE_CONTEXT, sid, data)
+    
+    @sio.event
+    async def create_agenda(sid, data):
+        """아젠다 생성 이벤트"""
+        await message_handler.handle_message(SocketEventType.CREATE_AGENDA, sid, data)
+    
+    @sio.event
+    async def create_task(sid, data):
+        """태스크 생성 이벤트"""
+        await message_handler.handle_message(SocketEventType.CREATE_TASK, sid, data)
+    
+    @sio.event
+    async def create_overtime(sid, data):
+        """오버타임 생성 이벤트"""
+        await message_handler.handle_message(SocketEventType.CREATE_OVERTIME, sid, data)
+    
+    @sio.event
+    async def update_context(sid, data):
+        """컨텍스트 업데이트 이벤트"""
+        await message_handler.handle_message(SocketEventType.UPDATE_CONTEXT, sid, data)
+    
+    @sio.event
+    async def create_explanation(sid, data):
+        """설명 생성 이벤트"""
+        await message_handler.handle_message(SocketEventType.CREATE_EXPLANATION, sid, data)
+    
+    @sio.event
+    async def calculate_result(sid, data):
+        """결과 계산 이벤트"""
+        await message_handler.handle_message(SocketEventType.CALCULATE_RESULT, sid, data)
+    
+    @sio.event
+    async def get_game_progress(sid, data):
+        """게임 진행 상황 조회 이벤트"""
+        await message_handler.handle_message(SocketEventType.GET_GAME_PROGRESS, sid, data)
     
     @sio.event
     async def send_message(sid, data):

@@ -263,10 +263,16 @@ class RoomService:
             if not room:
                 return False
             
-            # 게임 진행 중인지 확인
+            # 게임 진행 중인지 확인 (기존 플레이어는 재입장 가능)
             if room.status == RoomStatus.PLAYING:
-                logger.warning(f"Player with profile {profile_id} tried to join room {room_id} while game is in progress")
-                return False
+                # 기존 플레이어인지 확인
+                existing_player = room.get_player_by_profile_id(profile_id)
+                if not existing_player:
+                    logger.warning(f"New player with profile {profile_id} tried to join room {room_id} while game is in progress")
+                    return False
+                else:
+                    logger.info(f"Existing player with profile {profile_id} rejoining room {room_id} during game")
+                    return True
             
             # 방이 가득 찼는지 확인
             if room.current_players >= room.max_players:

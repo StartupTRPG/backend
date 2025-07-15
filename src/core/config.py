@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # 로깅 설정
     LOG_LEVEL: str
     
+    # LLM API 설정
+    LLM_API_BASE_URL: str
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

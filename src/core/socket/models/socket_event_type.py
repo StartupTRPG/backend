@@ -17,6 +17,17 @@ class SocketEventType(str, Enum):
     START_GAME = "start_game"
     FINISH_GAME = "finish_game"
     
+    # LLM 게임 관련
+    CREATE_GAME = "create_game"
+    CREATE_CONTEXT = "create_context"
+    CREATE_AGENDA = "create_agenda"
+    CREATE_TASK = "create_task"
+    CREATE_OVERTIME = "create_overtime"
+    UPDATE_CONTEXT = "update_context"
+    CREATE_EXPLANATION = "create_explanation"
+    CALCULATE_RESULT = "calculate_result"
+    GET_GAME_PROGRESS = "get_game_progress"
+    
     # 채팅 관련
     LOBBY_MESSAGE = "lobby_message"
     SYSTEM_MESSAGE = "system_message"

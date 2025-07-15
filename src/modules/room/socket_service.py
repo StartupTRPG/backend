@@ -31,11 +31,6 @@ class RoomSocketService:
                 await sio.emit('error', {'message': 'Room is full.'}, room=sid)
                 return None
             
-            # 게임 진행 중인지 확인
-            if room.status == 'playing':
-                await sio.emit('error', {'message': 'Cannot join room while game is in progress.'}, room=sid)
-                return None
-            
             # user_id로 프로필 정보 조회
             user_id = session['user_id']
             username = session['username']
@@ -48,6 +43,16 @@ class RoomSocketService:
                 return None
             
             profile_id = profile.id
+            
+            # 게임 진행 중인지 확인 (기존 사용자는 재입장 가능)
+            if room.status == 'playing':
+                # 기존 플레이어인지 확인
+                existing_player = room.get_player_by_profile_id(profile_id)
+                if not existing_player:
+                    await sio.emit('error', {'message': 'Cannot join room while game is in progress.'}, room=sid)
+                    return None
+                else:
+                    logger.info(f"Existing player {profile.display_name} rejoining room {room_id} during game")
             
             # 이미 같은 방에 있는지 확인
             current_room = session.get('current_room')
@@ -201,7 +206,35 @@ class RoomSocketService:
                 await sio.emit('error', {'message': '게임 시작에 실패했습니다.'}, room=sid)
                 return None
 
-            # 모든 유저에게 브로드캐스트
+            # 방 정보 조회하여 플레이어 리스트 가져오기
+            room = await room_service.room_repository.find_by_id(room_id)
+            if not room:
+                await sio.emit('error', {'message': '방 정보를 찾을 수 없습니다.'}, room=sid)
+                return None
+
+            # 플레이어 리스트 구성 (프로필 정보 조회)
+            player_list = []
+            for player in room.players:
+                # 프로필 정보 조회
+                player_profile = await user_profile_service.get_profile_by_id(player.profile_id)
+                if player_profile:
+                    player_info = {
+                        "id": player.profile_id,
+                        "name": player_profile.display_name,
+                        "role": player.role.value if hasattr(player.role, 'value') else str(player.role)
+                    }
+                    player_list.append(player_info)
+                else:
+                    logger.warning(f"프로필을 찾을 수 없음: {player.profile_id}")
+                    # 프로필이 없어도 기본 정보로 추가
+                    player_info = {
+                        "id": player.profile_id,
+                        "name": f"Player_{player.profile_id[-8:]}",
+                        "role": player.role.value if hasattr(player.role, 'value') else str(player.role)
+                    }
+                    player_list.append(player_info)
+
+            # 모든 유저에게 즉시 게임 시작 브로드캐스트
             await sio.emit('start_game', {
                 "room_id": room_id,
                 "host_profile_id": profile.id,
@@ -210,6 +243,30 @@ class RoomSocketService:
                 "timestamp": datetime.utcnow().isoformat()
             }, room=room_id)
             
+            # LLM 게임 생성을 비동기로 처리 (백그라운드에서 실행)
+            async def create_llm_game():
+                try:
+                    from src.modules.game.service import game_service
+                    game_result = await game_service.start_game(room_id, player_list)
+                    
+                    # 방의 모든 사용자에게 게임 생성 완료 알림
+                    await sio.emit('game_created', {
+                        'room_id': room_id,
+                        'story': game_result.story,
+                        'phase': 'context_creation'
+                    }, room=room_id)
+                    
+                    logger.info(f"LLM 게임 생성 완료: {room_id}")
+                    
+                except Exception as e:
+                    logger.error(f"LLM 게임 생성 실패: {room_id}, 오류: {str(e)}")
+                    # LLM 게임 생성 실패해도 방 게임은 시작된 상태로 유지
+                    await sio.emit('error', {'message': f'게임 스토리 생성에 실패했습니다: {str(e)}'}, room=room_id)
+            
+            # 비동기로 LLM 게임 생성 시작
+            import asyncio
+            asyncio.create_task(create_llm_game())
+            
             # 브로드캐스트 로깅 추가
             from src.core.socket.handler import log_socket_message
             log_socket_message('SUCCESS', '브로드캐스트', event='start_game', room=room_id, profile=profile.display_name)
@@ -217,16 +274,14 @@ class RoomSocketService:
             return RoomMessage(
                 event_type=SocketEventType.START_GAME,
                 room_id=room_id,
+                profile_id=profile.id,
                 host_profile_id=profile.id,
-                host_display_name=profile.display_name,
-                username=session['username']
+                host_display_name=profile.display_name
             )
             
-        except ValueError as e:
-            await sio.emit('error', {'message': str(e)}, room=sid)
-            return None
         except Exception as e:
-            await sio.emit('error', {'message': f'게임 시작 중 오류: {str(e)}'}, room=sid)
+            logger.error(f"게임 시작 실패: {str(e)}")
+            await sio.emit('error', {'message': f'게임 시작 실패: {str(e)}'}, room=sid)
             return None
 
     @staticmethod

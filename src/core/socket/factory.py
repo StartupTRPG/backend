@@ -13,6 +13,16 @@ from .strategy import (
     GameMessageStrategy,
     SystemMessageStrategy,
     ReadyStrategy,
+    # 게임 관련 전략들 추가
+    CreateGameStrategy,
+    CreateContextStrategy,
+    CreateAgendaStrategy,
+    CreateTaskStrategy,
+    CreateOvertimeStrategy,
+    UpdateContextStrategy,
+    CreateExplanationStrategy,
+    CalculateResultStrategy,
+    GetGameProgressStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +47,16 @@ class SocketMessageStrategyFactory:
             GameMessageStrategy(),
             SystemMessageStrategy(),
             ReadyStrategy(),
+            # 게임 관련 전략들 추가
+            CreateGameStrategy(),
+            CreateContextStrategy(),
+            CreateAgendaStrategy(),
+            CreateTaskStrategy(),
+            CreateOvertimeStrategy(),
+            UpdateContextStrategy(),
+            CreateExplanationStrategy(),
+            CalculateResultStrategy(),
+            GetGameProgressStrategy(),
         ]
         
         for strategy in strategies:
@@ -58,8 +78,8 @@ class SocketMessageStrategyFactory:
         self._strategies[event_type] = strategy
         logger.info(f"Registered new strategy for {event_type}: {strategy.__class__.__name__}")
     
-    def get_supported_event_types(self) -> list[SocketEventType]:
-        """Return list of supported event types"""
+    def get_supported_event_types(self) -> list:
+        """Get list of supported event types"""
         return list(self._strategies.keys())
     
     def has_strategy(self, event_type: SocketEventType) -> bool:
@@ -70,9 +90,8 @@ class SocketMessageStrategyFactory:
 _factory_instance = None
 
 def get_strategy_factory() -> SocketMessageStrategyFactory:
-    """Return strategy factory singleton instance"""
-    global _factory_instance
-    if _factory_instance is None:
-        _factory_instance = SocketMessageStrategyFactory()
+    """Get singleton strategy factory instance"""
+    if not hasattr(get_strategy_factory, '_instance'):
+        get_strategy_factory._instance = SocketMessageStrategyFactory()
         logger.info("Socket message strategy factory initialized")
-    return _factory_instance 
+    return get_strategy_factory._instance 

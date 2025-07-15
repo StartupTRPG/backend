@@ -25,7 +25,8 @@ class AuthSocketService:
                     username=existing_session.get('username')
                 )
             
-            token = data.get('token')
+            # token 또는 access_token 파라미터 처리
+            token = data.get('token') or data.get('access_token')
             if not token:
                 logger.warning(f"No token provided for connection {sid}")
                 await sio.emit('connect_failed', {'message': 'Token is required.'}, room=sid)
