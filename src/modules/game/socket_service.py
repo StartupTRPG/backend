@@ -23,17 +23,20 @@ class GameSocketService:
                 await sio.emit('error', {'message': 'Player list is required.'}, room=sid)
                 return None
             
-            # 게임 시작
+            # 게임 시작 (스토리 생성)
             result = await game_service.start_game(room_id, player_list)
             
-            # 방의 모든 사용자에게 게임 생성 완료 알림
-            await sio.emit('game_created', {
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
+            
+            # 게임 시작 이벤트도 함께 전송 (프론트엔드 호환성)
+            await sio.emit('start_game', {
                 'room_id': room_id,
-                'story': result.story,
-                'phase': 'context_creation'
+                'story': result.story
             }, room=room_id)
             
-            logger.info(f"게임 생성 완료: {room_id}")
+            logger.info(f"스토리 생성 완료: {room_id}")
             
             return BaseSocketMessage(
                 event_type=SocketEventType.CREATE_GAME,
@@ -55,21 +58,22 @@ class GameSocketService:
         try:
             room_id = data.get('room_id')
             max_turn = data.get('max_turn', 10)
+            story = data.get('story')  # story를 요청에서 받음
             
             if not room_id:
                 await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
                 return None
             
-            # 컨텍스트 생성
-            result = await game_service.create_context(room_id, max_turn)
+            if not story:
+                await sio.emit('error', {'message': 'Story is required.'}, room=sid)
+                return None
             
-            # 방의 모든 사용자에게 컨텍스트 생성 완료 알림
-            await sio.emit('context_created', {
-                'room_id': room_id,
-                'company_context': result.company_context,
-                'player_context_list': result.player_context_list,
-                'phase': 'agenda_creation'
-            }, room=room_id)
+            # 컨텍스트 생성 (story를 기반으로)
+            result = await game_service.create_context(room_id, max_turn, story)
+            
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"컨텍스트 생성 완료: {room_id}")
             
@@ -101,13 +105,9 @@ class GameSocketService:
             # 아젠다 생성
             result = await game_service.create_agenda(room_id)
             
-            # 방의 모든 사용자에게 아젠다 생성 완료 알림
-            await sio.emit('agenda_created', {
-                'room_id': room_id,
-                'description': result.description,
-                'agenda_list': result.agenda_list,
-                'phase': 'task_creation'
-            }, room=room_id)
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"아젠다 생성 완료: {room_id}")
             
@@ -139,12 +139,9 @@ class GameSocketService:
             # 태스크 생성
             result = await game_service.create_task(room_id)
             
-            # 방의 모든 사용자에게 태스크 생성 완료 알림
-            await sio.emit('task_created', {
-                'room_id': room_id,
-                'task_list': result.task_list,
-                'phase': 'overtime_creation'
-            }, room=room_id)
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"태스크 생성 완료: {room_id}")
             
@@ -175,12 +172,9 @@ class GameSocketService:
             # 오버타임 생성
             result = await game_service.create_overtime(room_id)
             
-            # 방의 모든 사용자에게 오버타임 생성 완료 알림
-            await sio.emit('overtime_created', {
-                'room_id': room_id,
-                'task_list': result.task_list,
-                'phase': 'playing'
-            }, room=room_id)
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"오버타임 생성 완료: {room_id}")
             
@@ -216,13 +210,9 @@ class GameSocketService:
                 room_id, agenda_selections, task_selections, overtime_selections
             )
             
-            # 방의 모든 사용자에게 컨텍스트 업데이트 완료 알림
-            await sio.emit('context_updated', {
-                'room_id': room_id,
-                'company_context': result.company_context,
-                'player_context_list': result.player_context_list,
-                'phase': 'explanation'
-            }, room=room_id)
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"컨텍스트 업데이트 완료: {room_id}")
             
@@ -254,12 +244,9 @@ class GameSocketService:
             # 설명 생성
             result = await game_service.create_explanation(room_id)
             
-            # 방의 모든 사용자에게 설명 생성 완료 알림
-            await sio.emit('explanation_created', {
-                'room_id': room_id,
-                'explanation': result.explanation,
-                'phase': 'result'
-            }, room=room_id)
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"설명 생성 완료: {room_id}")
             
@@ -290,13 +277,9 @@ class GameSocketService:
             # 결과 계산
             result = await game_service.calculate_result(room_id)
             
-            # 방의 모든 사용자에게 결과 계산 완료 알림
-            await sio.emit('result_calculated', {
-                'room_id': room_id,
-                'game_result': result.game_result,
-                'player_rankings': result.player_rankings,
-                'phase': 'finished'
-            }, room=room_id)
+            # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+            game_progress = game_service.get_game_progress(room_id)
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
             logger.info(f"결과 계산 완료: {room_id}")
             
@@ -328,10 +311,10 @@ class GameSocketService:
             # 게임 진행 상황 조회
             progress = game_service.get_game_progress(room_id)
             
-            # 요청한 사용자에게 게임 진행 상황 전송
-            await sio.emit('game_progress', progress, room=sid)
+            # 방의 모든 사용자에게 게임 진행 상황 전송
+            await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, progress, room=room_id)
             
-            logger.info(f"게임 진행 상황 조회: {room_id}")
+            logger.info(f"게임 진행 상황 조회 성공: {room_id}")
             
             return BaseSocketMessage(
                 event_type=SocketEventType.GET_GAME_PROGRESS,
@@ -339,6 +322,7 @@ class GameSocketService:
             )
             
         except Exception as e:
-            logger.error(f"게임 진행 상황 조회 실패: {str(e)}")
-            await sio.emit('error', {'message': f'게임 진행 상황 조회 실패: {str(e)}'}, room=sid)
+            error_msg = f"게임 진행 상황 조회 실패: {str(e)}"
+            logger.error(error_msg)
+            await sio.emit('error', {'message': error_msg}, room=sid)
             return None 

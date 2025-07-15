@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from ..enums import RoomStatus, RoomVisibility
 from .room_player_response import RoomPlayerResponse
@@ -20,6 +20,13 @@ class RoomResponse(BaseModel):
     updated_at: datetime = Field(..., description="수정 시간")
     game_settings: Dict[str, Any] = Field(default_factory=dict, description="게임 설정")
     players: List[RoomPlayerResponse] = Field(..., description="플레이어 목록")
+    
+    def get_player_by_profile_id(self, profile_id: str) -> Optional[RoomPlayerResponse]:
+        """프로필 ID로 플레이어를 찾는 메서드"""
+        for player in self.players:
+            if player.profile_id == profile_id:
+                return player
+        return None
     
     class Config:
         json_schema_extra = {

@@ -17,6 +17,7 @@ from src.modules.auth.router import router as auth_router
 from src.modules.room.router import router as room_router
 from src.modules.profile.router import router as profile_router
 from src.modules.chat.router import router as chat_router
+from src.modules.game.router import router as game_router
 from src.core.socket import create_socketio_app
 
 # Logging configuration
@@ -235,6 +236,7 @@ app.include_router(auth_router)
 app.include_router(room_router)
 app.include_router(profile_router)
 app.include_router(chat_router)
+app.include_router(game_router)
 
 @app.get("/")
 async def root():

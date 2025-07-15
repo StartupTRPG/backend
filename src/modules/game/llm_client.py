@@ -102,5 +102,9 @@ class LLMClient:
         }
         return await self._make_request("/result/", data)
 
+    async def start_game(self, player_list: list) -> Dict[str, Any]:
+        """게임 시작 (스토리 생성) - create_game과 동일"""
+        return await self.create_game(player_list)
+
 # 전역 LLM 클라이언트 인스턴스
 llm_client = LLMClient() 

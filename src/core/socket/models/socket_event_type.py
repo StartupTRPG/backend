@@ -27,6 +27,7 @@ class SocketEventType(str, Enum):
     CREATE_EXPLANATION = "create_explanation"
     CALCULATE_RESULT = "calculate_result"
     GET_GAME_PROGRESS = "get_game_progress"
+    GAME_PROGRESS_UPDATED = "game_progress_updated"
     
     # 채팅 관련
     LOBBY_MESSAGE = "lobby_message"

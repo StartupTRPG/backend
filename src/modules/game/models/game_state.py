@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class GamePhase(str, Enum):
     """게임 단계"""
     WAITING = "waiting"  # 대기 중
+    STORY_CREATION = "story_creation"  # 스토리 생성
     CONTEXT_CREATION = "context_creation"  # 컨텍스트 생성
     AGENDA_CREATION = "agenda_creation"  # 아젠다 생성
     TASK_CREATION = "task_creation"  # 태스크 생성
@@ -22,6 +23,9 @@ class GameState(BaseModel):
     phase: GamePhase = GamePhase.WAITING
     current_turn: int = 0
     max_turn: int = 0
+    
+    # 플레이어 정보 추가
+    player_list: List[Dict[str, str]] = []
     
     # 게임 데이터
     story: Optional[str] = None
@@ -65,4 +69,9 @@ class GameState(BaseModel):
         phase_order = list(GamePhase)
         current_index = phase_order.index(self.phase)
         target_index = phase_order.index(phase)
+        
+        # 컨텍스트 생성 단계에서 아젠다 생성으로 진행하는 경우
+        if self.phase == GamePhase.CONTEXT_CREATION and phase == GamePhase.AGENDA_CREATION:
+            return True
+        
         return target_index == current_index + 1 

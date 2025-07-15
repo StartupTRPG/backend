@@ -249,12 +249,32 @@ class RoomSocketService:
                     from src.modules.game.service import game_service
                     game_result = await game_service.start_game(room_id, player_list)
                     
-                    # 방의 모든 사용자에게 게임 생성 완료 알림
-                    await sio.emit('game_created', {
+                    # story 브로드캐스트
+                    await sio.emit('story_created', {
                         'room_id': room_id,
                         'story': game_result.story,
-                        'phase': 'context_creation'
+                        'message': '게임 스토리가 생성되었습니다.',
+                        'timestamp': datetime.utcnow().isoformat()
                     }, room=room_id)
+                    
+                    logger.info(f"Story 브로드캐스트 완료: {room_id}")
+                    
+                    # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
+                    game_progress = game_service.get_game_progress(room_id)
+                    logger.info(f"게임 진행 상황 조회 완료: {room_id}, phase: {game_progress.get('phase', 'unknown')}")
+                    
+                    # 방에 연결된 모든 클라이언트에게 이벤트 전송
+                    from src.core.socket.server import room_profiles
+                    connected_clients = room_profiles.get(room_id, [])
+                    logger.info(f"방 {room_id}에 연결된 클라이언트 수: {len(connected_clients)}")
+                    
+                    await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
+                    logger.info(f"game_progress_updated 이벤트 전송 완료: {room_id}")
+                    
+                    # 브로드캐스트 로깅 추가
+                    from src.core.socket.handler import log_socket_message
+                    log_socket_message('SUCCESS', '브로드캐스트', event='story_created', room=room_id, profile='system')
+                    log_socket_message('SUCCESS', '브로드캐스트', event=SocketEventType.GAME_PROGRESS_UPDATED, room=room_id, profile='system')
                     
                     logger.info(f"LLM 게임 생성 완료: {room_id}")
                     
