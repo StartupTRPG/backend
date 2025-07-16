@@ -28,14 +28,7 @@ class TaskGenerationService:
             raise Exception("게임 상태를 찾을 수 없습니다.")
         
         # LLM 서버가 기대하는 형식으로 player_context_list 변환
-        formatted_player_context_list = []
-        for player_context in game_state.player_context_list:
-            formatted_player_context_list.append({
-                "id": player_context.get("player_id", ""),
-                "name": player_context.get("player_name", ""),
-                "role": player_context.get("player_role", ""),
-                "context": player_context.get("player_context", {})
-            })
+        formatted_player_context_list = game_state.player_context_list
         
         # LLM 서버에 태스크 생성 요청
         response = await llm_client.create_task(

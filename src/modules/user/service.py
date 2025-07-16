@@ -127,37 +127,30 @@ class UserService:
     
     async def delete_user(self, user_id: str) -> bool:
         """사용자 계정 삭제 (프로필도 함께 삭제)"""
-        try:
-            # 사용자 삭제
-            success = await self.user_repository.delete(user_id)
+        # 사용자 삭제
+        success = await self.user_repository.delete(user_id)
+        
+        if success:
+            # 프로필도 함께 삭제
+            try:
+                from src.modules.profile.service import user_profile_service
+                await user_profile_service.delete_profile(user_id)
+            except Exception as e:
+                # 프로필 삭제 실패는 로그만 남김
+                print(f"프로필 삭제 실패: {e}")
             
-            if success:
-                # 프로필도 함께 삭제
-                try:
-                    from src.modules.profile.service import user_profile_service
-                    await user_profile_service.delete_profile(user_id)
-                except Exception as e:
-                    # 프로필 삭제 실패는 로그만 남김
-                    print(f"프로필 삭제 실패: {e}")
-                
-                return True
-            
-            return False
-            
-        except Exception:
-            return False
+            return True
+        
+        return False
     
     async def update_user_role(self, user_id: str, role: str, is_admin: bool = False) -> bool:
         """사용자 역할 업데이트 (관리자용)"""
-        try:
-            success = await self.user_repository.update(user_id, {
-                'role': role,
-                'is_admin': is_admin,
-                'updated_at': datetime.utcnow()
-            })
-            return success
-        except Exception:
-            return False
+        success = await self.user_repository.update(user_id, {
+            'role': role,
+            'is_admin': is_admin,
+            'updated_at': datetime.utcnow()
+        })
+        return success
     
     async def get_user_by_id_with_admin_info(self, user_id: str) -> Optional[UserResponse]:
         """사용자 ID로 조회 (관리자 정보 포함)"""

@@ -548,8 +548,7 @@ class AgendaVoteStrategy(SocketMessageStrategy):
             request = AgendaVoteRequest(**data)
             
             # 투표 처리
-            from src.modules.game.agenda_vote_service import AgendaVoteService
-            agenda_vote_service = AgendaVoteService()
+            from src.modules.game.agenda_vote_service import agenda_vote_service
             response = await agenda_vote_service.vote_on_agenda(request, user_id)
             
             # 투표자에게 응답 전송
