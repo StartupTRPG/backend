@@ -1,6 +1,7 @@
 from typing import Dict, Optional
 import logging
 from .interfaces import SocketEventType
+# 순환 import 방지를 위해 직접 strategy.py에서 import
 from .strategy import (
     SocketMessageStrategy,
     AuthConnectStrategy,
@@ -23,6 +24,8 @@ from .strategy import (
     CreateExplanationStrategy,
     CalculateResultStrategy,
     GetGameProgressStrategy,
+    # 아젠다 투표 전략 추가
+    AgendaVoteStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,6 +60,8 @@ class SocketMessageStrategyFactory:
             CreateExplanationStrategy(),
             CalculateResultStrategy(),
             GetGameProgressStrategy(),
+            # 아젠다 투표 전략 추가
+            AgendaVoteStrategy(),
         ]
         
         for strategy in strategies:

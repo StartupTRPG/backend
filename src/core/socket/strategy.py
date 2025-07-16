@@ -523,4 +523,83 @@ class GetGameProgressStrategy(SocketMessageStrategy):
         return await GameSocketService.handle_get_game_progress(sio, sid, session, data)
     
     def get_event_type(self) -> SocketEventType:
-        return SocketEventType.GET_GAME_PROGRESS 
+        return SocketEventType.GET_GAME_PROGRESS
+
+
+class AgendaVoteStrategy(SocketMessageStrategy):
+    """아젠다 투표 소켓 전략"""
+    
+    async def handle(self, sio: socketio.AsyncServer, sid: str, data: Dict[str, Any]) -> Optional[BaseSocketMessage]:
+        """아젠다 투표 이벤트 처리"""
+        try:
+            # 사용자 인증 확인
+            session = await self._validate_session(sio, sid)
+            if not session:
+                await sio.emit('agenda_vote_response', {
+                    "success": False,
+                    "message": "인증되지 않은 사용자입니다."
+                }, room=sid)
+                return None
+            
+            user_id = session.get('user_id')
+            
+            # 요청 데이터 파싱
+            from src.core.socket.models.agenda_message import AgendaVoteRequest
+            request = AgendaVoteRequest(**data)
+            
+            # 투표 처리
+            from src.modules.game.agenda_vote_service import AgendaVoteService
+            agenda_vote_service = AgendaVoteService()
+            response = await agenda_vote_service.vote_on_agenda(request, user_id)
+            
+            # 투표자에게 응답 전송
+            await sio.emit('agenda_vote_response', {
+                "success": response.success,
+                "message": response.message,
+                "agenda_id": response.agenda_id,
+                "selected_option_id": response.vote,
+                "total_votes": response.total_votes,
+                "vote_results": response.vote_results
+            }, room=sid)
+            
+            # 투표가 성공한 경우 다른 사용자들에게 업데이트 전송
+            if response.success:
+                vote_update = await agenda_vote_service.get_vote_update(request.agenda_id, user_id)
+                if vote_update:
+                    # 방의 다른 사용자들에게 투표 업데이트 전송
+                    await self._broadcast_vote_update(sio, request.room_id, vote_update, user_id)
+                    
+        except Exception as e:
+            await sio.emit('agenda_vote_response', {
+                "success": False,
+                "message": f"투표 처리 중 오류가 발생했습니다: {str(e)}"
+            }, room=sid)
+    
+    async def _broadcast_vote_update(self, sio, room_id: str, vote_update, exclude_user_id: str):
+        """투표 업데이트를 방의 다른 사용자들에게 브로드캐스트"""
+        try:
+            from src.core.session_manager import SessionManager
+            session_manager = SessionManager()
+            
+            # 방에 있는 다른 사용자들에게 투표 업데이트 전송
+            room_sessions = await session_manager.get_room_sessions(room_id)
+            
+            for session in room_sessions:
+                if session.user_id != exclude_user_id:
+                    try:
+                        await sio.emit('agenda_vote_update', {
+                            "agenda_id": vote_update.agenda_id,
+                            "voter_id": vote_update.voter_id,
+                            "vote": vote_update.vote,
+                            "total_votes": vote_update.total_votes,
+                            "vote_results": vote_update.vote_results,
+                            "is_complete": vote_update.is_complete
+                        }, room=session.sid)
+                    except Exception as e:
+                        logger.error(f"투표 업데이트 전송 실패: {e}")
+                        
+        except Exception as e:
+            logger.error(f"투표 업데이트 브로드캐스트 실패: {e}")
+    
+    def get_event_type(self) -> SocketEventType:
+        return SocketEventType.VOTE_AGENDA 

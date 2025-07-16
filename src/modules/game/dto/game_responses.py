@@ -51,7 +51,7 @@ class TaskOutput(BaseModel):
 
 class CreateTaskResponse(BaseModel):
     """태스크 생성 응답"""
-    task_list: Dict[str, List[TaskOutput]] = Field(..., description="태스크 리스트")
+    task_list: Dict[str, List[Dict[str, Any]]] = Field(..., description="태스크 리스트")
 
 class OvertimeTaskType(str, Enum):
     """오버타임 태스크 타입"""

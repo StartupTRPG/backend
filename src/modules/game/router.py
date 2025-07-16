@@ -4,6 +4,7 @@ from typing import Dict, Any
 from src.core.response import ApiResponse
 from src.modules.game.service import GameService
 from src.modules.game.dto.game_requests import CreateGameRequest
+from src.modules.game.dto.game_responses import CreateTaskResponse
 from src.modules.user.service import user_service
 from src.core.jwt_utils import jwt_manager
 
@@ -61,5 +62,20 @@ async def finish_game(
         game_service = GameService()
         result = await game_service.finish_game(room_id)
         return ApiResponse(data=result, message="게임이 성공적으로 종료되었습니다.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{room_id}/task")
+async def create_task(
+    room_id: str,
+    current_user = Depends(get_current_user)
+) -> ApiResponse[CreateTaskResponse]:
+    """
+    태스크 생성 API - agenda 결과를 바탕으로 LLM 백엔드에서 생성
+    """
+    try:
+        game_service = GameService()
+        result = await game_service.create_task(room_id)
+        return ApiResponse(data=result, message="태스크가 성공적으로 생성되었습니다.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

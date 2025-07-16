@@ -153,6 +153,27 @@ def create_socketio_app(fastapi_app: FastAPI) -> socketio.ASGIApp:
         """게임 메시지 이벤트"""
         await message_handler.handle_message(SocketEventType.GAME_MESSAGE, sid, data)
     
+    # 아젠다 투표 관련 이벤트 핸들러들
+    @sio.event
+    async def vote_agenda(sid, data):
+        """아젠다 투표 이벤트"""
+        await message_handler.handle_message(SocketEventType.VOTE_AGENDA, sid, data)
+    
+    @sio.event
+    async def agenda_vote_broadcast(sid, data):
+        """아젠다 투표 브로드캐스트 이벤트"""
+        await message_handler.handle_message(SocketEventType.AGENDA_VOTE_BROADCAST, sid, data)
+    
+    @sio.event
+    async def agenda_vote_completed(sid, data):
+        """아젠다 투표 완료 이벤트"""
+        await message_handler.handle_message(SocketEventType.AGENDA_VOTE_COMPLETED, sid, data)
+    
+    @sio.event
+    async def task_created(sid, data):
+        """태스크 생성 완료 이벤트"""
+        await message_handler.handle_message(SocketEventType.TASK_CREATED, sid, data)
+    
     # Socket.IO 앱을 FastAPI에 마운트
     socket_app = socketio.ASGIApp(sio, fastapi_app)
     

@@ -29,6 +29,14 @@ class SocketEventType(str, Enum):
     GET_GAME_PROGRESS = "get_game_progress"
     GAME_PROGRESS_UPDATED = "game_progress_updated"
     
+    # 아젠다 투표 관련
+    VOTE_AGENDA = "vote_agenda"
+    AGENDA_VOTE_BROADCAST = "agenda_vote_broadcast"
+    AGENDA_VOTE_COMPLETED = "agenda_vote_completed"
+    
+    # 태스크 생성 관련
+    TASK_CREATED = "task_created"
+    
     # 채팅 관련
     LOBBY_MESSAGE = "lobby_message"
     SYSTEM_MESSAGE = "system_message"
@@ -37,4 +45,4 @@ class SocketEventType(str, Enum):
     # 공통
     ERROR = "error"
     FORCE_DISCONNECT = "force_disconnect"
-    READY = "ready"  # 플레이어 레디/언레디 
+    READY = "ready"  # 플레이어 레디/언레디

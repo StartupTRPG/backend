@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, Optional
 from src.core.socket.models import BaseSocketMessage, SocketEventType
 from src.modules.game.service import game_service
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -136,12 +137,33 @@ class GameSocketService:
                 await sio.emit('error', {'message': 'Room ID is required.'}, room=sid)
                 return None
             
-            # 태스크 생성
+            # 방 정보 확인
+            from src.modules.room.service import room_service
+            room = await room_service.get_room(room_id)
+            if not room:
+                await sio.emit('error', {'message': '방을 찾을 수 없습니다.'}, room=sid)
+                return None
+            
+            # 게임 상태 확인
+            game_state = game_service.get_game_state(room_id)
+            if not game_state:
+                await sio.emit('error', {'message': '게임 상태를 찾을 수 없습니다.'}, room=sid)
+                return None
+            
+            # 게임 서비스를 통한 태스크 생성
             result = await game_service.create_task(room_id)
             
             # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
             game_progress = game_service.get_game_progress(room_id)
             await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
+            
+            # 태스크 생성 완료 이벤트 전송
+            task_data = {
+                'room_id': room_id,
+                'task_list': result.task_list,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            await sio.emit(SocketEventType.TASK_CREATED, task_data, room=room_id)
             
             logger.info(f"태스크 생성 완료: {room_id}")
             

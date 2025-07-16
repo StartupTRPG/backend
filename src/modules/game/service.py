@@ -5,6 +5,7 @@ from src.modules.game.llm_client import llm_client
 from src.modules.game.models.game_state import GameState, GamePhase
 from src.modules.game.dto.game_requests import *
 from src.modules.game.dto.game_responses import *
+from src.core.mongodb import get_collection
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -234,42 +235,25 @@ class GameService:
             raise
     
     async def create_task(self, room_id: str) -> CreateTaskResponse:
-        """태스크 생성"""
-        try:
-            game_state = self.get_game_state(room_id)
-            if not game_state:
-                raise Exception("게임 상태를 찾을 수 없습니다.")
-            
-            if not game_state.can_proceed_to_phase(GamePhase.TASK_CREATION):
-                raise Exception("태스크 생성 단계로 진행할 수 없습니다.")
-            
-            # LLM 서버가 기대하는 형식으로 player_context_list 변환
-            formatted_player_context_list = []
-            for player_context in game_state.player_context_list:
-                formatted_player_context_list.append({
-                    "id": player_context.get("player_id", ""),
-                    "name": player_context.get("display_name", ""),
-                    "role": player_context.get("role", ""),
-                    "context": player_context.get("context", {})
-                })
-            
-            # LLM 서버에 태스크 생성 요청
-            response = await llm_client.create_task(
-                company_context=game_state.company_context,
-                player_context_list=formatted_player_context_list
-            )
-            
-            # 게임 상태 업데이트
-            game_state.task_list = response.get("task_list", {})
-            game_state.phase = GamePhase.OVERTIME_CREATION
-            game_state.update_timestamp()
-            
-            logger.info(f"태스크 생성 성공: {room_id}")
-            return CreateTaskResponse(task_list=game_state.task_list)
-            
-        except Exception as e:
-            logger.error(f"태스크 생성 실패: {room_id}, 오류: {str(e)}")
-            raise
+        """태스크 생성 - LLM 백엔드에서 생성"""
+        game_state = self.get_game_state(room_id)
+        if not game_state:
+            raise Exception("게임 상태를 찾을 수 없습니다.")
+        
+        if not game_state.can_proceed_to_phase(GamePhase.TASK_CREATION):
+            raise Exception("태스크 생성 단계로 진행할 수 없습니다.")
+        
+        # LLM 백엔드를 통한 태스크 생성
+        from .task_generation_service import task_generation_service
+        task_list = await task_generation_service.generate_tasks_for_room(room_id)
+        
+        # 게임 상태 업데이트
+        game_state.task_list = task_list
+        game_state.phase = GamePhase.OVERTIME_CREATION
+        game_state.update_timestamp()
+        
+        logger.info(f"LLM 백엔드를 통한 태스크 생성 성공: {room_id}")
+        return CreateTaskResponse(task_list=task_list)
     
     async def create_overtime(self, room_id: str) -> CreateOvertimeResponse:
         """오버타임 생성"""
@@ -496,6 +480,25 @@ class GameService:
         except Exception as e:
             logger.error(f"게임 진행 상황 조회 중 오류 발생: {room_id}, 오류: {str(e)}")
             return {"error": f"게임 진행 상황 조회 실패: {str(e)}"}
+
+    # 아젠다 투표 관련 메서드들
+    async def get_agenda_vote_status(self, room_id: str, agenda_id: str) -> Dict[str, Any]:
+        """아젠다 투표 현황 조회"""
+        try:
+            from .agenda_vote_service import agenda_vote_service
+            return await agenda_vote_service.get_vote_status(room_id, agenda_id)
+        except Exception as e:
+            logger.error(f"아젠다 투표 현황 조회 실패: {room_id}, {agenda_id}, 오류: {str(e)}")
+            return {"error": f"투표 현황 조회 실패: {str(e)}"}
+
+    async def clear_agenda_votes(self, room_id: str, agenda_id: str) -> bool:
+        """아젠다 투표 데이터 삭제"""
+        try:
+            from .agenda_vote_service import agenda_vote_service
+            return await agenda_vote_service.clear_votes(room_id, agenda_id)
+        except Exception as e:
+            logger.error(f"아젠다 투표 데이터 삭제 실패: {room_id}, {agenda_id}, 오류: {str(e)}")
+            return False
 
 # 전역 게임 서비스 인스턴스
 game_service = GameService() 

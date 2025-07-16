@@ -70,6 +70,10 @@ class GameState(BaseModel):
         current_index = phase_order.index(self.phase)
         target_index = phase_order.index(phase)
         
+        # 현재 단계에서 같은 단계로 진행하는 경우 (예: task_creation에서 task_creation)
+        if target_index == current_index:
+            return True
+        
         # 컨텍스트 생성 단계에서 아젠다 생성으로 진행하는 경우
         if self.phase == GamePhase.CONTEXT_CREATION and phase == GamePhase.AGENDA_CREATION:
             return True
