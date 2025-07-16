@@ -206,6 +206,8 @@ class GameService:
     
     async def create_task(self, room_id: str) -> CreateTaskResponse:
         """태스크 생성 - LLM 백엔드에서 생성"""
+        logger.info(f"GameService.create_task 호출: {room_id}")
+        
         game_state = self.get_game_state(room_id)
         if not game_state:
             raise Exception("게임 상태를 찾을 수 없습니다.")

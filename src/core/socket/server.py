@@ -160,6 +160,21 @@ def create_socketio_app(fastapi_app: FastAPI) -> socketio.ASGIApp:
         await message_handler.handle_message(SocketEventType.VOTE_AGENDA, sid, data)
     
     @sio.event
+    async def agenda_navigate(sid, data):
+        """아젠다 네비게이션 이벤트"""
+        await message_handler.handle_message(SocketEventType.AGENDA_NAVIGATE, sid, data)
+    
+    @sio.event
+    async def task_completed(sid, data):
+        """태스크 완료 이벤트"""
+        await message_handler.handle_message(SocketEventType.TASK_COMPLETED, sid, data)
+    
+    @sio.event
+    async def task_navigate(sid, data):
+        """태스크 네비게이션 이벤트"""
+        await message_handler.handle_message(SocketEventType.TASK_NAVIGATE, sid, data)
+    
+    @sio.event
     async def agenda_vote_broadcast(sid, data):
         """아젠다 투표 브로드캐스트 이벤트"""
         await message_handler.handle_message(SocketEventType.AGENDA_VOTE_BROADCAST, sid, data)

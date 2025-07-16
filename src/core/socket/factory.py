@@ -26,6 +26,12 @@ from .strategy import (
     GetGameProgressStrategy,
     # 아젠다 투표 전략 추가
     AgendaVoteStrategy,
+    # 아젠다 네비게이션 전략 추가
+    AgendaNavigateStrategy,
+    # 태스크 완료 전략 추가
+    TaskCompletedStrategy,
+    # 태스크 네비게이션 전략 추가
+    TaskNavigateStrategy,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,6 +68,12 @@ class SocketMessageStrategyFactory:
             GetGameProgressStrategy(),
             # 아젠다 투표 전략 추가
             AgendaVoteStrategy(),
+            # 아젠다 네비게이션 전략 추가
+            AgendaNavigateStrategy(),
+            # 태스크 완료 전략 추가
+            TaskCompletedStrategy(),
+            # 태스크 네비게이션 전략 추가
+            TaskNavigateStrategy(),
         ]
         
         for strategy in strategies:

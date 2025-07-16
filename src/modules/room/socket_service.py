@@ -104,6 +104,7 @@ class RoomSocketService:
                 'user_id': session['user_id'],
                 'username': session['username'],
                 'access_token': session.get('access_token'),
+                'profile_id': profile_id,  # profile_id 추가
                 'current_room': room_id,
                 'connected_at': session.get('connected_at', datetime.utcnow().isoformat()),
                 'room_joined_at': datetime.utcnow().isoformat()

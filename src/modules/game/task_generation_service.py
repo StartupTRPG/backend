@@ -16,6 +16,8 @@ class TaskGenerationService:
     
     async def generate_tasks_for_room(self, room_id: str) -> Dict[str, List[Dict[str, Any]]]:
         """방의 모든 플레이어를 위한 태스크 생성 - LLM 백엔드 사용"""
+        logger.info(f"태스크 생성 시작: {room_id}")
+        
         # 방 정보 확인
         room = await room_service.get_room(room_id)
         if not room:

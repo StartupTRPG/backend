@@ -21,6 +21,7 @@ class SocketEventType(str, Enum):
     CREATE_GAME = "create_game"
     CREATE_CONTEXT = "create_context"
     CREATE_AGENDA = "create_agenda"
+    AGENDA_LOADING_STARTED = "agenda_loading_started"
     CREATE_TASK = "create_task"
     CREATE_OVERTIME = "create_overtime"
     UPDATE_CONTEXT = "update_context"
@@ -33,6 +34,12 @@ class SocketEventType(str, Enum):
     VOTE_AGENDA = "vote_agenda"
     AGENDA_VOTE_BROADCAST = "agenda_vote_broadcast"
     AGENDA_VOTE_COMPLETED = "agenda_vote_completed"
+    AGENDA_NAVIGATE = "agenda_navigate"  # 아젠다 네비게이션 (다음/이전)
+    
+    # 태스크 완료 관련
+    TASK_COMPLETED = "task_completed"  # 태스크 완료 알림
+    TASK_COMPLETED_BROADCAST = "task_completed_broadcast"  # 태스크 완료 브로드캐스트
+    TASK_NAVIGATE = "task_navigate"  # 태스크 네비게이션 (다음 단계로)
     
     # 태스크 생성 관련
     TASK_CREATED = "task_created"
