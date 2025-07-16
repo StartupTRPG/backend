@@ -32,9 +32,9 @@ class TaskGenerationService:
         for player_context in game_state.player_context_list:
             formatted_player_context_list.append({
                 "id": player_context.get("player_id", ""),
-                "name": player_context.get("display_name", ""),
-                "role": player_context.get("role", ""),
-                "context": player_context.get("context", {})
+                "name": player_context.get("player_name", ""),
+                "role": player_context.get("player_role", ""),
+                "context": player_context.get("player_context", {})
             })
         
         # LLM 서버에 태스크 생성 요청

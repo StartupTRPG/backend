@@ -78,4 +78,8 @@ class GameState(BaseModel):
         if self.phase == GamePhase.CONTEXT_CREATION and phase == GamePhase.AGENDA_CREATION:
             return True
         
+        # PLAYING 단계에서 RESULT 단계로 진행하는 경우 (overtime 선택 후)
+        if self.phase == GamePhase.PLAYING and phase == GamePhase.RESULT:
+            return True
+        
         return target_index == current_index + 1 

@@ -144,7 +144,8 @@ class GameService:
             for player in room.players:
                 player_list.append({
                     "id": player.profile_id,
-                    "name": player.display_name
+                    "name": player.display_name,
+                    "role": player.role if hasattr(player, 'role') else "개발자"  # 기본값 설정
                 })
             
             # LLM 서버에 컨텍스트 생성 요청 (story를 기반으로 생성)
@@ -208,9 +209,9 @@ class GameService:
             for player_context in game_state.player_context_list:
                 formatted_player_context_list.append({
                     "id": player_context.get("player_id", ""),
-                    "name": player_context.get("display_name", ""),
-                    "role": player_context.get("role", ""),
-                    "context": player_context.get("context", {})
+                    "name": player_context.get("player_name", ""),
+                    "role": player_context.get("player_role", ""),
+                    "context": player_context.get("player_context", {})
                 })
             
             # LLM 서버에 아젠다 생성 요청
@@ -270,9 +271,9 @@ class GameService:
             for player_context in game_state.player_context_list:
                 formatted_player_context_list.append({
                     "id": player_context.get("player_id", ""),
-                    "name": player_context.get("display_name", ""),
-                    "role": player_context.get("role", ""),
-                    "context": player_context.get("context", {})
+                    "name": player_context.get("player_name", ""),
+                    "role": player_context.get("player_role", ""),
+                    "context": player_context.get("player_context", {})
                 })
             
             # LLM 서버에 오버타임 생성 요청
@@ -310,14 +311,14 @@ class GameService:
             game_state.task_selections = task_selections
             game_state.overtime_selections = overtime_selections
             
-            # LLM 서버가 기대하는 형식으로 player_context_list 변환
+            # context_update 모듈용 key로 변환
             formatted_player_context_list = []
             for player_context in game_state.player_context_list:
                 formatted_player_context_list.append({
-                    "id": player_context.get("player_id", ""),
-                    "name": player_context.get("display_name", ""),
-                    "role": player_context.get("role", ""),
-                    "context": player_context.get("context", {})
+                    "player_id": player_context.get("player_id", ""),
+                    "player_name": player_context.get("player_name", ""),
+                    "player_role": player_context.get("player_role", ""),
+                    "player_context": player_context.get("player_context", {})
                 })
             
             # LLM 서버에 컨텍스트 업데이트 요청
@@ -355,14 +356,14 @@ class GameService:
             if not game_state.can_proceed_to_phase(GamePhase.EXPLANATION):
                 raise Exception("설명 생성 단계로 진행할 수 없습니다.")
             
-            # LLM 서버가 기대하는 형식으로 player_context_list 변환
+            # explanation 모듈용 key로 변환
             formatted_player_context_list = []
             for player_context in game_state.player_context_list:
                 formatted_player_context_list.append({
                     "id": player_context.get("player_id", ""),
-                    "name": player_context.get("display_name", ""),
-                    "role": player_context.get("role", ""),
-                    "context": player_context.get("context", {})
+                    "name": player_context.get("player_name", ""),
+                    "role": player_context.get("player_role", ""),
+                    "context": player_context.get("player_context", {})
                 })
             
             # LLM 서버에 설명 생성 요청
@@ -393,14 +394,14 @@ class GameService:
             if not game_state.can_proceed_to_phase(GamePhase.RESULT):
                 raise Exception("결과 계산 단계로 진행할 수 없습니다.")
             
-            # LLM 서버가 기대하는 형식으로 player_context_list 변환
+            # result 모듈용 key로 변환
             formatted_player_context_list = []
             for player_context in game_state.player_context_list:
                 formatted_player_context_list.append({
                     "id": player_context.get("player_id", ""),
-                    "name": player_context.get("display_name", ""),
-                    "role": player_context.get("role", ""),
-                    "context": player_context.get("context", {})
+                    "name": player_context.get("player_name", ""),
+                    "role": player_context.get("player_role", ""),
+                    "context": player_context.get("player_context", {})
                 })
             
             # LLM 서버에 결과 계산 요청

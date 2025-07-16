@@ -74,7 +74,7 @@ class OvertimeTaskOutput(BaseModel):
 
 class CreateOvertimeResponse(BaseModel):
     """오버타임 생성 응답"""
-    task_list: Dict[str, List[OvertimeTaskOutput]] = Field(..., description="태스크 리스트")
+    task_list: Dict[str, List[Dict[str, Any]]] = Field(..., description="태스크 리스트")
 
 class UpdateContextResponse(BaseModel):
     """컨텍스트 업데이트 응답"""
@@ -100,5 +100,5 @@ class PlayerRanking(BaseModel):
 
 class ResultResponse(BaseModel):
     """결과 계산 응답"""
-    game_result: GameResult = Field(..., description="게임 결과")
-    player_rankings: List[PlayerRanking] = Field(..., description="플레이어 랭킹 리스트") 
+    game_result: Dict[str, Any] = Field(..., description="게임 결과")
+    player_rankings: List[Dict[str, Any]] = Field(..., description="플레이어 랭킹 리스트") 

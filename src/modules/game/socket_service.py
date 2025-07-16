@@ -306,10 +306,24 @@ class GameSocketService:
             
             # 결과 계산
             result = await game_service.calculate_result(room_id)
+            # ResultResponse를 딕셔너리로 변환
+            result_dict = {
+                'game_result': result.game_result,
+                'player_rankings': result.player_rankings
+            }
             
             # 방의 모든 사용자에게 게임 진행 상황 업데이트 알림
             game_progress = game_service.get_game_progress(room_id)
             await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
+            
+            # 게임 결과 생성 완료 이벤트 전송
+            result_data = {
+                'room_id': room_id,
+                'game_result': result_dict['game_result'],
+                'player_rankings': result_dict['player_rankings'],
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            await sio.emit('game_result_created', result_data, room=room_id)
             
             logger.info(f"결과 계산 완료: {room_id}")
             
@@ -317,8 +331,8 @@ class GameSocketService:
                 event_type=SocketEventType.CALCULATE_RESULT,
                 data={
                     'room_id': room_id,
-                    'game_result': result.game_result,
-                    'player_rankings': result.player_rankings,
+                    'game_result': result_dict['game_result'],
+                    'player_rankings': result_dict['player_rankings'],
                     'phase': 'finished'
                 }
             )
