@@ -198,6 +198,14 @@ class GameSocketService:
             game_progress = game_service.get_game_progress(room_id)
             await sio.emit(SocketEventType.GAME_PROGRESS_UPDATED, game_progress, room=room_id)
             
+            # 오버타임 생성 완료 이벤트 전송
+            overtime_data = {
+                'room_id': room_id,
+                'task_list': result.task_list,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            await sio.emit('overtime_created', overtime_data, room=room_id)
+            
             logger.info(f"오버타임 생성 완료: {room_id}")
             
             return BaseSocketMessage(
